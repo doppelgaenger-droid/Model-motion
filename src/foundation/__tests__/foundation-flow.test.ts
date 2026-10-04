@@ -1,20 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { resolveContinuity } from "../continuity";
+import { assertContinuity, resolveContinuity } from "../continuity";
 import { corridorState } from "../continuity/__tests__/fixtures";
 import { compileGenerationRequest } from "../prompt";
-import { MockVideoProvider, ProviderOrchestrator, ProviderRegistry } from "../providers";
+import { MockVideoProvider, ProviderOrchestrator, ProviderRegistry } from "../providers/contract";
 import { planTakeApproval } from "../storage";
 import type { PromptSpecification } from "../prompt";
 import type { TakeSnapshot } from "../storage";
 
 describe("Foundation end-to-end contract", () => {
   it("flows continuity through prompt provider take approval and canonical promotion", async () => {
-    const continuity = resolveContinuity({
-      previousApprovedEndState: corridorState,
-      patches: [],
-      overrides: [],
-    });
-    expect(continuity.canGenerate).toBe(true);
+    const continuity = resolveContinuity(corridorState, corridorState);
+    expect(continuity.validation.valid).toBe(true);
+    assertContinuity(continuity);
 
     const provider = new MockVideoProvider();
     const capabilities = await provider.capabilities();
