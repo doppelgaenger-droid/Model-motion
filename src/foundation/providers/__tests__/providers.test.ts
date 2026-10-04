@@ -37,7 +37,7 @@ describe("provider foundation", () => {
   it("enforces terminal job lifecycle", () => {
     expect(canTransitionProviderJob("queued", "running")).toBe(true);
     expect(canTransitionProviderJob("succeeded", "running")).toBe(false);
-    expect(isTerminalProviderJob({ id: "x", status: "failed" })).toBe(true);
+    expect(isTerminalProviderJob({ id: "x", model: { providerId: "mock", modelId: "mock-video", modelVersion: "1" }, status: "failed" })).toBe(true);
   });
 
   it("normalizes rate limits as retryable", () => {
