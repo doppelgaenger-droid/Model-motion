@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ProviderRegistry } from "../registry";
 import { ProviderOrchestrator } from "../orchestrator";
 import { MockVideoProvider } from "../mock";
+import { canTransitionProviderJob, isTerminalProviderJob } from "../lifecycle";
+import { normalizeProviderError } from "../error-normalization";
 
 const request = {
   prompt: "test",
@@ -23,5 +25,20 @@ describe("provider foundation", () => {
   it("normalizes unknown-provider failures", async () => {
     const registry = new ProviderRegistry();
     await expect(new ProviderOrchestrator(registry).submit("missing", request)).rejects.toMatchObject({ code: "UNKNOWN_PROVIDER" });
+  });
+  it("blocks impossible provider requests before submission", async () => {
+    const registry = new ProviderRegistry();
+    registry.register(new MockVideoProvider());
+    await expect(new ProviderOrchestrator(registry).submit("mock", { ...request, durationSeconds: 99 })).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+  });
+
+  it("enforces terminal job lifecycle", () => {
+    expect(canTransitionProviderJob("queued", "running")).toBe(true);
+    expect(canTransitionProviderJob("succeeded", "running")).toBe(false);
+    expect(isTerminalProviderJob({ id: "x", status: "failed" })).toBe(true);
+  });
+
+  it("normalizes rate limits as retryable", () => {
+    expect(normalizeProviderError("mock", { status: 429, message: "slow down" })).toMatchObject({ code: "RATE_LIMIT", retryable: true });
   });
 });
