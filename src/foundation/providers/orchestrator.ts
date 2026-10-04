@@ -1,5 +1,7 @@
 import type { CompiledGenerationRequest } from "./contract";
 import { ProviderError } from "./errors";
+import { normalizeProviderError } from "./error-normalization";
+import { validateProviderRequest } from "./capabilities";
 import type { ProviderResult } from "./types";
 import { ProviderRegistry } from "./registry";
 
@@ -15,12 +17,14 @@ export class ProviderOrchestrator {
     }
 
     try {
+      const capabilities = await provider.capabilities();
+      const capabilityIssues = validateProviderRequest(request, capabilities);
+      if (capabilityIssues.length) throw new ProviderError("INVALID_REQUEST", capabilityIssues.map((issue) => issue.message).join("\n"));
       const estimatedCost = await provider.estimateCost(request);
       const job = await provider.submit(request);
       return { job, estimatedCost };
     } catch (cause) {
-      if (cause instanceof ProviderError) throw cause;
-      throw new ProviderError("PROVIDER_FAILURE", `Provider ${providerId} submission failed.`, true, cause);
+      throw normalizeProviderError(providerId, cause);
     }
   }
 
@@ -28,8 +32,7 @@ export class ProviderOrchestrator {
     try {
       return await this.registry.get(providerId).getJob(jobId);
     } catch (cause) {
-      if (cause instanceof ProviderError) throw cause;
-      throw new ProviderError("PROVIDER_FAILURE", `Provider ${providerId} job refresh failed.`, true, cause);
+      throw normalizeProviderError(providerId, cause);
     }
   }
 }
