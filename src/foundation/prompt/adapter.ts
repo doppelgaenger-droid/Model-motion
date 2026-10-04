@@ -32,6 +32,8 @@ export function compileGenerationRequest(
       aspectRatio,
       durationSeconds,
       referenceAssets: compilation.referenceAssets,
+      firstFrame: compilation.firstFrame,
+      lastFrame: compilation.lastFrame,
       parameters,
     },
     compilation,
