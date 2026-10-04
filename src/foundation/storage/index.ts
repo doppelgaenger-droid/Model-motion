@@ -7,3 +7,7 @@ export * from "./transaction";
 export * from "./approval";
 export * from "./integrity";
 export * from "./versioning";
+export * from "./deletion";
+export * from "./concurrency";
+export * from "./schema";
+export * from "./deduplication";
