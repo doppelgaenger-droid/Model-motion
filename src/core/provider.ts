@@ -33,8 +33,8 @@ export interface ProviderModelIdentity {
 
 export interface ProviderJob {
   id: string;
-  model?: ProviderModelIdentity;
-  status: "queued" | "running" | "succeeded" | "failed";
+  model: ProviderModelIdentity;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   outputs?: AssetRef[];
   error?: { code: string; message: string };
   cost?: CostRecord;
