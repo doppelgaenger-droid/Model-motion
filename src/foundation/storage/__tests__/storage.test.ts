@@ -4,6 +4,10 @@ import { canTransitionAsset } from "../assets";
 import { assertEntityHierarchy } from "../entities";
 import { planTakeApproval } from "../approval";
 import { nextRevision } from "../versioning";
+import { assertExpectedRevision } from "../concurrency";
+import { assetDeduplicationKey, sameAssetContent } from "../deduplication";
+import { createTombstone, isDeleted } from "../deletion";
+import { FOUNDATION_SCHEMA_VERSION, assertSupportedSchemaVersion } from "../schema";
 
 describe("storage foundation", () => {
   it("prevents take replacement", () => {
@@ -38,5 +42,26 @@ describe("storage foundation", () => {
   it("increments storage revisions deterministically", () => {
     expect(nextRevision(undefined)).toBe(1);
     expect(nextRevision(4)).toBe(5);
+  });
+  it("detects optimistic locking conflicts", () => {
+    expect(() => assertExpectedRevision(3, 3)).not.toThrow();
+    expect(() => assertExpectedRevision(3, 4)).toThrow(/Revision conflict/);
+  });
+
+  it("deduplicates assets only with matching checksums", () => {
+    const a = { id: "a", kind: "image", uri: "a", checksum: "abc" } as const;
+    const b = { id: "b", kind: "image", uri: "b", checksum: "abc" } as const;
+    expect(assetDeduplicationKey(a)).toBe("image:abc");
+    expect(sameAssetContent(a, b)).toBe(true);
+  });
+
+  it("uses tombstones instead of destructive deletion metadata", () => {
+    const tombstone = createTombstone("2026-10-04T20:00:00Z", "user deletion");
+    expect(isDeleted({ tombstone })).toBe(true);
+  });
+
+  it("rejects unknown schema versions", () => {
+    expect(() => assertSupportedSchemaVersion(FOUNDATION_SCHEMA_VERSION)).not.toThrow();
+    expect(() => assertSupportedSchemaVersion(999)).toThrow(/Unsupported schema version/);
   });
 });
