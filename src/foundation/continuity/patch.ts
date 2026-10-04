@@ -34,7 +34,7 @@ export function applyStatePatches(base: ContinuityState, patches: StatePatch[]):
         case "character.props": character.propIds = patch.value; break;
         case "character.hands": character.handState = patch.value; break;
       }
-      overrides.push({ dimension: patch.op, characterId, reason: patch.reason, intentional: true });
+      overrides.push({ dimension: patch.op as ContinuityOverride["dimension"], characterId, reason: patch.reason, intentional: true });
       continue;
     }
 
