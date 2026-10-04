@@ -18,11 +18,18 @@ export function validatePromptSpecification(
   const issues: PromptValidationIssue[] = [];
   const { intent } = specification;
   const { capabilities } = context;
+  const firstFrames = specification.references.filter((r) => r.role === "first-frame");
+  const lastFrames = specification.references.filter((r) => r.role === "last-frame");
+  const standardReferences = specification.references.filter((r) => r.role !== "first-frame" && r.role !== "last-frame");
 
   if (!intent.action.trim()) {
     issues.push({ severity: "error", code: "EMPTY_ACTION", message: "Shot action is required." });
   }
-  if (specification.references.length && !capabilities.referenceImages) {
+  if (firstFrames.length > 1) issues.push({ severity: "error", code: "MULTIPLE_FIRST_FRAMES", message: "Only one first-frame reference is allowed." });
+  if (lastFrames.length > 1) issues.push({ severity: "error", code: "MULTIPLE_LAST_FRAMES", message: "Only one last-frame reference is allowed." });
+  if (firstFrames.length && !capabilities.firstFrame) issues.push({ severity: "error", code: "FIRST_FRAME_UNSUPPORTED", message: "Provider cannot consume a first-frame reference." });
+  if (lastFrames.length && !capabilities.lastFrame) issues.push({ severity: "error", code: "LAST_FRAME_UNSUPPORTED", message: "Provider cannot consume a last-frame reference." });
+  if (standardReferences.length && !capabilities.referenceImages) {
     issues.push({ severity: "warning", code: "REFERENCES_UNSUPPORTED", message: "Provider cannot consume reference images." });
   }
   if (intent.dialogue?.length && !capabilities.nativeAudio) {
