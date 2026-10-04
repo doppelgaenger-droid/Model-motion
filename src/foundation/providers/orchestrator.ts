@@ -3,6 +3,7 @@ import { ProviderError } from "./errors";
 import { normalizeProviderError } from "./error-normalization";
 import { validateProviderRequest } from "./capabilities";
 import { validateCostRecord } from "./cost";
+import { assertIdempotencyKey } from "./idempotency";
 import type { ProviderResult } from "./types";
 import { ProviderRegistry } from "./registry";
 
@@ -18,6 +19,7 @@ export class ProviderOrchestrator {
     }
 
     try {
+      if (request.idempotencyKey != null) assertIdempotencyKey(request.idempotencyKey);
       const capabilities = await provider.capabilities();
       const capabilityIssues = validateProviderRequest(request, capabilities);
       if (capabilityIssues.length) throw new ProviderError("INVALID_REQUEST", capabilityIssues.map((issue) => issue.message).join("\n"));
