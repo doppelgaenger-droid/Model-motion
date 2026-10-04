@@ -22,11 +22,19 @@ export interface CompiledGenerationRequest {
   firstFrame?: AssetRef;
   lastFrame?: AssetRef;
   parameters: Record<string, unknown>;
+  idempotencyKey?: string;
+}
+
+export interface ProviderModelIdentity {
+  providerId: string;
+  modelId: string;
+  modelVersion?: string;
 }
 
 export interface ProviderJob {
   id: string;
-  status: "queued" | "running" | "succeeded" | "failed";
+  model: ProviderModelIdentity;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   outputs?: AssetRef[];
   error?: { code: string; message: string };
   cost?: CostRecord;
@@ -34,8 +42,10 @@ export interface ProviderJob {
 
 export interface VideoProvider {
   readonly id: string;
+  readonly model: ProviderModelIdentity;
   capabilities(): Promise<ProviderCapabilities>;
   estimateCost(request: CompiledGenerationRequest): Promise<CostRecord>;
   submit(request: CompiledGenerationRequest): Promise<ProviderJob>;
   getJob(jobId: ID): Promise<ProviderJob>;
+  cancel?(jobId: ID): Promise<ProviderJob>;
 }

@@ -72,12 +72,23 @@ export interface Shot {
 }
 
 export interface GenerationProvenance {
-  provider: string;
-  model: string;
+  providerId: string;
+  modelId: string;
+  modelVersion?: string;
   promptCompilerVersion: string;
   requestParameters: Record<string, unknown>;
   seed?: string | number;
   referenceAssetIds: ID[];
+  firstFrameAssetId?: ID;
+  lastFrameAssetId?: ID;
+  idempotencyKey?: string;
+}
+
+export interface PromptEdit {
+  editedPrompt?: string;
+  editedConstraints?: string;
+  reason?: string;
+  editedAt: string;
 }
 
 export interface CostRecord {
@@ -95,6 +106,7 @@ export interface Take {
   provenance: GenerationProvenance;
   compiledPrompt: string;
   compiledConstraints?: string;
+  manualPromptEdit?: PromptEdit;
   outputAssetIds: ID[];
   cost: CostRecord;
   createdAt: string;

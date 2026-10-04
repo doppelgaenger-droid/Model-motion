@@ -8,3 +8,4 @@ export * from "./camera";
 export * from "./take-validation";
 export * from "./locks";
 export * from "./provenance";
+export * from "./gate";
