@@ -11,3 +11,4 @@ export * from "./deletion";
 export * from "./concurrency";
 export * from "./schema";
 export * from "./deduplication";
+export * from "./migrations";
