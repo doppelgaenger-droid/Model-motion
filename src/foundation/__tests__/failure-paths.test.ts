@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { assertContinuity, resolveContinuity } from "../continuity";
 import { corridorState } from "../continuity/__tests__/fixtures";
 import { compileGenerationRequest } from "../prompt";
-import { MockVideoProvider, ProviderOrchestrator, ProviderRegistry } from "../providers/contract";
+import { MockVideoProvider, ProviderOrchestrator } from "../providers/contract";
+import { ProviderRegistry } from "../providers/registry";
 import { assertExpectedRevision, planTakeApproval } from "../storage";
 
 describe("Foundation failure paths", () => {
