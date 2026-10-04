@@ -1,0 +1,9 @@
+@import "./tokens.css";
+
+/*
+ * Single global visual entry point.
+ * No character, project, scene or provider may ship its own global CSS.
+ * Component-level exceptions require a Foundation primitive or token first.
+ *
+ * Visual design is intentionally NOT defined in F0.2.
+ */
