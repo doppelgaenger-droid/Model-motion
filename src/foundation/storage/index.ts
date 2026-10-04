@@ -3,3 +3,7 @@ export * from "./repository";
 export * from "./immutability";
 export * from "./entities";
 export * from "./assets";
+export * from "./transaction";
+export * from "./approval";
+export * from "./integrity";
+export * from "./versioning";
