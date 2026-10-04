@@ -2,7 +2,7 @@ name: Foundation CI
 
 on:
   push:
-    branches: [main, "foundation/**"]
+    branches: [main, "foundation/**", "app/**"]
   pull_request:
     branches: [main]
 
@@ -31,3 +31,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build app
+        run: npm run build
