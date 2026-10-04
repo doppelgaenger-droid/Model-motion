@@ -26,3 +26,8 @@ export async function withProviderRetry<T>(
   }
   throw lastError;
 }
+
+/** Submission retries are safe only when the request carries an idempotency key and the adapter honors it. */
+export function assertRetryableSubmission(idempotencyKey?: string): void {
+  if (!idempotencyKey?.trim()) throw new Error("Provider submission retries require an idempotency key.");
+}
