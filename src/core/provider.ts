@@ -19,6 +19,8 @@ export interface CompiledGenerationRequest {
   aspectRatio: string;
   durationSeconds: number;
   referenceAssets: AssetRef[];
+  firstFrame?: AssetRef;
+  lastFrame?: AssetRef;
   parameters: Record<string, unknown>;
 }
 
