@@ -3,6 +3,7 @@ import type { CompiledGenerationRequest, ProviderCapabilities, ProviderJob, Vide
 
 export class MockVideoProvider implements VideoProvider {
   readonly id = "mock";
+  readonly model = { providerId: "mock", modelId: "mock-video", modelVersion: "1" };
   private jobs = new Map<ID, ProviderJob>();
 
   async capabilities(): Promise<ProviderCapabilities> {
