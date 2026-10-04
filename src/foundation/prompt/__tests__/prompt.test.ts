@@ -25,7 +25,8 @@ const specification: PromptSpecification = {
     aspectRatio: "16:9",
     constraints: ["Hands remain empty."],
   },
-  references: [{ id: "character-ref", kind: "image", uri: "asset://character-ref" }],
+  references: [{ role: "identity", asset: { id: "character-ref", kind: "image", uri: "asset://character-ref" } }],
+  styleBible: { visual: ["restrained cinematic realism"], forbidden: ["unmotivated wardrobe changes"] },
   negativeConstraints: ["Do not open the door."],
 };
 
@@ -36,6 +37,7 @@ describe("prompt compiler", () => {
     expect(result.request.referenceAssets).toHaveLength(1);
     expect(result.compilation.prompt).toContain("door-714");
     expect(result.compilation.constraints).toContain("Do not open the door.");
+    expect(result.compilation.prompt).toContain("restrained cinematic realism");
   });
 
   it("blocks unsupported duration before provider submission", () => {
@@ -43,6 +45,13 @@ describe("prompt compiler", () => {
       { ...specification, intent: { ...specification.intent, durationSeconds: 12 } },
       { providerId: "mock", capabilities }
     )).toThrow(/DURATION_UNSUPPORTED/);
+  });
+
+  it("blocks unsupported first-frame conditioning", () => {
+    expect(() => compileGenerationRequest(
+      { ...specification, references: [{ role: "first-frame", asset: { id: "frame-1", kind: "image", uri: "asset://frame-1" } }] },
+      { providerId: "no-first-frame", capabilities: { ...capabilities, firstFrame: false } }
+    )).toThrow(/FIRST_FRAME_UNSUPPORTED/);
   });
 
   it("degrades unsupported references to a warning", () => {
