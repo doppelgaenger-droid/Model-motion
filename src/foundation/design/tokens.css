@@ -1,0 +1,13 @@
+:root {
+  /* Foundation placeholders. Visual language will be designed deliberately later. */
+  --mm-space-1: 0.25rem;
+  --mm-space-2: 0.5rem;
+  --mm-space-3: 0.75rem;
+  --mm-space-4: 1rem;
+  --mm-space-6: 1.5rem;
+  --mm-space-8: 2rem;
+
+  --mm-motion-instant: 0ms;
+  --mm-motion-standard: 160ms;
+  --mm-motion-deliberate: 240ms;
+}
