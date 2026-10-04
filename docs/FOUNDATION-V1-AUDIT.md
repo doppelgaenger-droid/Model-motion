@@ -10,9 +10,9 @@ Foundation v1.0 is the provider-agnostic application core. It owns contracts, co
 - [x] F0.4 Prompt engine
 - [x] F0.5 Provider abstraction
 - [x] F0.6 Data/storage contracts
-- [ ] F0.7 Full test gate green
-- [ ] Legacy/dead-code audit
-- [ ] Public export audit
+- [x] F0.7 Full test gate green
+- [x] Legacy/dead-code audit
+- [x] Public export audit
 - [ ] Foundation v1.0 tag/release
 
 ## Required invariants
@@ -33,3 +33,12 @@ Foundation v1.0 is the provider-agnostic application core. It owns contracts, co
 - Provider job cancellation/terminal-state consistency.
 - Provider job model identity requirement for reproducibility.
 - Continuity locks/topology enforcement at the generation gate.
+
+## F0.8 Release hardening
+- [x] Server/client security boundary
+- [x] Generation budget guard
+- [x] Audit event contract
+- [x] Portable project manifest
+- [x] Schema migration contract
+- [x] Provider-neutral observability contract
+- [x] Continuity locks/topology generation gate
