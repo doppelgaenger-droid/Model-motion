@@ -24,8 +24,15 @@ export interface CompiledGenerationRequest {
   parameters: Record<string, unknown>;
 }
 
+export interface ProviderModelIdentity {
+  providerId: string;
+  modelId: string;
+  modelVersion?: string;
+}
+
 export interface ProviderJob {
   id: string;
+  model?: ProviderModelIdentity;
   status: "queued" | "running" | "succeeded" | "failed";
   outputs?: AssetRef[];
   error?: { code: string; message: string };
@@ -34,8 +41,10 @@ export interface ProviderJob {
 
 export interface VideoProvider {
   readonly id: string;
+  readonly model: ProviderModelIdentity;
   capabilities(): Promise<ProviderCapabilities>;
   estimateCost(request: CompiledGenerationRequest): Promise<CostRecord>;
   submit(request: CompiledGenerationRequest): Promise<ProviderJob>;
   getJob(jobId: ID): Promise<ProviderJob>;
+  cancel?(jobId: ID): Promise<ProviderJob>;
 }
