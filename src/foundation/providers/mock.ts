@@ -22,14 +22,14 @@ export class MockVideoProvider implements VideoProvider {
 
   async submit(request: CompiledGenerationRequest): Promise<ProviderJob> {
     const id = `mock-${this.jobs.size + 1}`;
-    const job: ProviderJob = { id, status: "queued" };
+    const job: ProviderJob = { id, model: this.model, status: "queued" };
     this.jobs.set(id, job);
     return job;
   }
 
   async getJob(jobId: ID): Promise<ProviderJob> {
     const job = this.jobs.get(jobId);
-    if (!job) return { id: jobId, status: "failed", error: { code: "NOT_FOUND", message: "Mock job not found." } };
+    if (!job) return { id: jobId, model: this.model, status: "failed", error: { code: "NOT_FOUND", message: "Mock job not found." } };
     return job;
   }
 }
