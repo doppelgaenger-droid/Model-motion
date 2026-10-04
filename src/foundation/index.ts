@@ -6,3 +6,8 @@ export * from "./prompt";
 export * from "./motion/presets";
 export * from "./continuity";
 export * from "./storage";
+export * from "./security/boundary";
+export * from "./budget/guard";
+export * from "./audit/events";
+export * from "./portability/manifest";
+export * from "./observability/types";
