@@ -4,7 +4,7 @@ import { ProviderOrchestrator } from "../orchestrator";
 import { MockVideoProvider } from "../mock";
 import { canTransitionProviderJob, isTerminalProviderJob } from "../lifecycle";
 import { normalizeProviderError } from "../error-normalization";
-import { retryDelayMs } from "../retry";
+import { assertRetryableSubmission, retryDelayMs } from "../retry";
 import { assertIdempotencyKey } from "../idempotency";
 
 const request = {
@@ -46,6 +46,11 @@ describe("provider foundation", () => {
   it("uses bounded exponential retry delays", () => {
     const policy = { maxAttempts: 4, baseDelayMs: 100, maxDelayMs: 250 };
     expect([1, 2, 3].map((attempt) => retryDelayMs(attempt, policy))).toEqual([100, 200, 250]);
+  });
+
+  it("requires idempotency before retrying paid submissions", () => {
+    expect(() => assertRetryableSubmission()).toThrow(/idempotency key/);
+    expect(() => assertRetryableSubmission("take-001")).not.toThrow();
   });
 
   it("rejects empty idempotency keys", () => {
