@@ -22,6 +22,7 @@ export interface CompiledGenerationRequest {
   firstFrame?: AssetRef;
   lastFrame?: AssetRef;
   parameters: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 export interface ProviderModelIdentity {
