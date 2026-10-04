@@ -1,19 +1,19 @@
 import type { CostRecord } from "../core/contracts";
-import type { CompiledGenerationRequest, ProviderCapabilities, ProviderJob } from "./contract";
+import type { CompiledGenerationRequest, ProviderCapabilities, ProviderJob, ProviderModelIdentity } from "./contract";
 
 export type ProviderHealth = "available" | "degraded" | "unavailable";
 
 export interface ProviderDescriptor {
   id: string;
   displayName: string;
-  model: string;
+  model: ProviderModelIdentity;
   capabilities: ProviderCapabilities;
   health: ProviderHealth;
 }
 
 export interface ProviderSubmission {
   providerId: string;
-  model: string;
+  model: ProviderModelIdentity;
   request: CompiledGenerationRequest;
 }
 
