@@ -4,6 +4,8 @@ import { ProviderOrchestrator } from "../orchestrator";
 import { MockVideoProvider } from "../mock";
 import { canTransitionProviderJob, isTerminalProviderJob } from "../lifecycle";
 import { normalizeProviderError } from "../error-normalization";
+import { retryDelayMs } from "../retry";
+import { assertIdempotencyKey } from "../idempotency";
 
 const request = {
   prompt: "test",
@@ -40,5 +42,13 @@ describe("provider foundation", () => {
 
   it("normalizes rate limits as retryable", () => {
     expect(normalizeProviderError("mock", { status: 429, message: "slow down" })).toMatchObject({ code: "RATE_LIMIT", retryable: true });
+  });
+  it("uses bounded exponential retry delays", () => {
+    const policy = { maxAttempts: 4, baseDelayMs: 100, maxDelayMs: 250 };
+    expect([1, 2, 3].map((attempt) => retryDelayMs(attempt, policy))).toEqual([100, 200, 250]);
+  });
+
+  it("rejects empty idempotency keys", () => {
+    expect(() => assertIdempotencyKey("   ")).toThrow(/Idempotency key/);
   });
 });
