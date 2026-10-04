@@ -47,6 +47,14 @@ describe("prompt compiler", () => {
     )).toThrow(/DURATION_UNSUPPORTED/);
   });
 
+  it("preserves first-frame conditioning at the provider boundary", () => {
+    const result = compileGenerationRequest(
+      { ...specification, references: [{ role: "first-frame", asset: { id: "frame-1", kind: "image", uri: "asset://frame-1" } }] },
+      { providerId: "mock", capabilities }
+    );
+    expect(result.request.firstFrame?.id).toBe("frame-1");
+  });
+
   it("blocks unsupported first-frame conditioning", () => {
     expect(() => compileGenerationRequest(
       { ...specification, references: [{ role: "first-frame", asset: { id: "frame-1", kind: "image", uri: "asset://frame-1" } }] },
