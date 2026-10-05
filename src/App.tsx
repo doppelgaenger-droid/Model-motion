@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AssetUpload } from "./components/AssetUpload";
 import { listCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
 import { AuthGate } from "./components/AuthGate";
+import { createPrivateProject, loadPrivateProject, type PrivateProject } from "./data/privateProject";
 
 type Selection = "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
@@ -16,47 +17,31 @@ function NavRow({active,icon,title,meta,onClick}:{active:boolean;icon:string;tit
 }
 
 export function App(){
-  const [selected,setSelected]=useState<Selection>("shot-01");
-  const isShot=selected.startsWith("shot-");
-  const shot=isShot?shotData[selected as keyof typeof shotData]:null;
+  const [project,setProject]=useState<PrivateProject|null|undefined>(undefined);
+  useEffect(()=>{void loadPrivateProject().then(setProject)},[]);
+  if(project===undefined) return <AuthGate><div className="auth-screen"><span>MODEL MOTION</span><p>Loading private workspace…</p></div></AuthGate>;
+  if(project===null) return <AuthGate><div className="auth-screen"><span>MODEL MOTION</span><h1>Private workspace</h1><p>No production project is stored in this account yet.</p><button className="primary-action" onClick={()=>void createPrivateProject("Untitled project").then(setProject)}>Create private project</button></div></AuthGate>;
+  return <AuthGate><PrivateWorkspace project={project}/></AuthGate>;
+}
 
-  return <AuthGate><div className="workspace">
-    <header className="appbar">
-      <div className="wordmark">MODEL <b>MOTION</b></div>
-      <div className="project-switch"><span>Room 714</span><small>Project 001</small></div>
-      <div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
-    </header>
+function PrivateWorkspace({project}:{project:PrivateProject}){
+  const [selected,setSelected]=useState<string>("project");
+  const character=project.characters[0];
+  const location=project.locations[0];
+  const scene=project.scenes[0];
+  const shots=scene?.shots ?? [];
+  const shot=shots.find(item=>item.id===selected);
 
-    <aside className="navigator">
-      <div className="nav-title"><span>PROJECT</span><button>＋</button></div>
-      <div className="tree-section"><h3>CHARACTERS <span>1</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001" onClick={()=>setSelected("mara")}/></div>
-      <div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
-      <div className="tree-section scenes"><h3>SCENES <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
-        {(Object.keys(shotData) as Array<keyof typeof shotData>).map(k=><button key={k} className={"shot-nav "+(selected===k?"active":"")} onClick={()=>setSelected(k)}><span>{shotData[k].n}</span><b>{shotData[k].title}</b><small>{shotData[k].duration}</small></button>)}
-      </div>
-      <div className="nav-bottom"><button onClick={()=>setSelected("storyboard")}>＋ Storyboard</button></div>
+  return <div className="workspace">
+    <header className="appbar"><div className="wordmark">MODEL <b>MOTION</b></div><div className="project-switch"><span>{project.title}</span><small>Private project</small></div><div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/><small>Foundation 1.0</small></div></header>
+    <aside className="navigator"><div className="nav-title"><span>PROJECT</span><button>＋</button></div>
+      <div className="tree-section"><h3>CHARACTERS <span>{project.characters.length}</span></h3>{character&&<NavRow active={selected===character.id} icon={character.displayName.slice(0,1)} title={character.displayName} meta="Character" onClick={()=>setSelected(character.id)}/>}</div>
+      <div className="tree-section"><h3>LOCATIONS <span>{project.locations.length}</span></h3>{location&&<NavRow active={selected===location.id} icon="L" title={location.displayName} meta={location.meta??"Location"} onClick={()=>setSelected(location.id)}/>}</div>
+      <div className="tree-section scenes"><h3>SCENES <span>{project.scenes.length}</span></h3>{scene&&<div className="scene-label"><span>⌄</span><b>01</b><div><strong>{scene.title}</strong><small>{shots.length} shots</small></div></div>}{shots.map((item,index)=><button key={item.id} className={"shot-nav "+(selected===item.id?"active":"")} onClick={()=>setSelected(item.id)}><span>{String(index+1).padStart(2,"0")}</span><b>{item.title}</b><small>{item.duration}</small></button>)}</div>
     </aside>
-
-    <main className="content">
-      {selected==="mara" && <CharacterStudio/>}
-      {selected==="location" && <LocationStudio/>}
-      {selected==="storyboard" && <StoryboardStudio/>}
-      {shot && <ShotStudio shot={shot}/>}
-    </main>
-
-    <aside className="inspector">
-      {selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
-    </aside>
-
-    {shot && <section className="takes">
-      <div className="takes-head"><div><b>TAKES</b><span>Shot {shot.n}</span></div><div><button>Compare</button><button>Filter</button></div></div>
-      <div className="take-strip">
-        <div className="take-empty primary"><span className="take-number">01</span><div className="empty-mark">＋</div><b>Generate first take</b><small>No media generated yet</small></div>
-        <div className="take-empty ghost"><span className="take-number">02</span></div>
-        <div className="take-empty ghost"><span className="take-number">03</span></div>
-      </div>
-    </section>}
-  </div></AuthGate>
+    <main className="content">{shot?<div className="studio"><div className="studio-head"><div><small>PRIVATE SHOT</small><h1>{shot.title}</h1></div><div className="head-meta"><span>{shot.duration}</span></div></div><div className="canvas empty-canvas"><div className="empty-state"><div className="empty-symbol">□</div><h2>No generated take</h2><p>{shot.action}</p></div></div></div>:<div className="studio"><div className="studio-head"><div><small>PRIVATE PROJECT</small><h1>{project.title}</h1></div></div><div className="canvas empty-canvas"><div className="empty-state"><h2>Private production workspace</h2><p>Characters, locations, scenes and shots are loaded from your protected Firestore account.</p></div></div></div>}</main>
+    <aside className="inspector"><div className="inspector-head"><span>PRIVATE WORKSPACE</span><b>Owner only</b></div><InspectorGroup title="PROJECT"><Row k="Characters" v={String(project.characters.length)}/><Row k="Locations" v={String(project.locations.length)}/><Row k="Scenes" v={String(project.scenes.length)}/></InspectorGroup></aside>
+  </div>;
 }
 
 function ShotStudio({shot}:{shot:(typeof shotData)[keyof typeof shotData]}){return <div className="studio">
