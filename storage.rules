@@ -1,14 +1,14 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /model-motion/users/{userId}/{allPaths=**} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null
-        && request.auth.uid == userId
+    function isOwner() { return request.auth != null && request.auth.uid == 'muju7doq6xYWBToKNpMw6LKnbBw1'; }
+    match /model-motion/{allPaths=**} {
+      allow read: if isOwner();
+      allow create, update: if isOwner()
         && request.resource != null
         && request.resource.size < 25 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow delete: if isOwner();
     }
   }
 }
