@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AssetUpload } from "./components/AssetUpload";
-import type { UploadedCreativeAsset } from "./assets/upload";
+import { listCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
+import { AuthGate } from "./components/AuthGate";
 
 type Selection = "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
@@ -19,7 +20,7 @@ export function App(){
   const isShot=selected.startsWith("shot-");
   const shot=isShot?shotData[selected as keyof typeof shotData]:null;
 
-  return <div className="workspace">
+  return <AuthGate><div className="workspace">
     <header className="appbar">
       <div className="wordmark">MODEL <b>MOTION</b></div>
       <div className="project-switch"><span>Room 714</span><small>Project 001</small></div>
@@ -55,7 +56,7 @@ export function App(){
         <div className="take-empty ghost"><span className="take-number">03</span></div>
       </div>
     </section>}
-  </div>
+  </div></AuthGate>
 }
 
 function ShotStudio({shot}:{shot:(typeof shotData)[keyof typeof shotData]}){return <div className="studio">
@@ -64,9 +65,10 @@ function ShotStudio({shot}:{shot:(typeof shotData)[keyof typeof shotData]}){retu
   <div className="shot-summary"><div><label>ACTION</label><p>{shot.action}</p></div><div><label>CANONICAL INPUT</label><div className="state-pills"><span>Mara · v1.0</span><span>Black / 001</span><span>Door 714 · closed</span><span>Hands · empty</span></div></div></div>
 </div>}
 
-function CharacterStudio(){const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]); const add=(asset:UploadedCreativeAsset)=>setAssets(current=>[asset,...current]); return <div className="studio"><div className="studio-head"><div><small>CHARACTER 001</small><h1>Mara</h1></div><div className="head-meta"><span>Canonical v1.0</span></div></div><div className="asset-grid">{assets.map(asset=><div className="reference-preview" key={asset.id}><img src={asset.downloadUrl} alt={asset.name}/><small>{asset.type}</small></div>)}<AssetUpload owner={{kind:"character",id:"character-mara-001"}} type="character-board" label="Add character board" hint="Canonical visual reference" onUploaded={add}/><AssetUpload owner={{kind:"character",id:"character-mara-001"}} type="full-body-reference" label="Add full-body reference" hint="Used for wardrobe and proportions" onUploaded={add}/><div className="character-notes"><label>IDENTITY LOCK</label><h2>Mara · 28</h2><p>Short wavy brunette/light-brown bob with bangs, green-hazel eyes. Slim adult woman.</p><div className="state-pills"><span>Face locked</span><span>Hair locked</span><span>Body locked</span></div></div></div></div>}
+function useOwnerAssets(owner:AssetOwner){const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]); useEffect(()=>{let live=true; void listCreativeAssets(owner).then(items=>{if(live)setAssets(items)}); return()=>{live=false}},[owner.kind,owner.id,owner.kind==="project"?owner.episodeId:""]); return [assets,setAssets] as const;}
+function CharacterStudio(){const owner:AssetOwner={kind:"character",id:"character-mara-001"}; const [assets,setAssets]=useOwnerAssets(owner); const add=(asset:UploadedCreativeAsset)=>setAssets(current=>[asset,...current]); return <div className="studio"><div className="studio-head"><div><small>CHARACTER 001</small><h1>Mara</h1></div><div className="head-meta"><span>Canonical v1.0</span></div></div><div className="asset-grid">{assets.map(asset=><div className="reference-preview" key={asset.id}><img src={asset.downloadUrl} alt={asset.name}/><small>{asset.type}</small></div>)}<AssetUpload owner={owner} type="character-board" label="Add character board" hint="Canonical visual reference" onUploaded={add}/><AssetUpload owner={owner} type="full-body-reference" label="Add full-body reference" hint="Used for wardrobe and proportions" onUploaded={add}/><div className="character-notes"><label>IDENTITY LOCK</label><h2>Mara · 28</h2><p>Short wavy brunette/light-brown bob with bangs, green-hazel eyes. Slim adult woman.</p><div className="state-pills"><span>Face locked</span><span>Hair locked</span><span>Body locked</span></div></div></div></div>}
 
-function StoryboardStudio(){const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]); return <div className="studio"><div className="studio-head"><div><small>ROOM 714 / EPISODE 01</small><h1>Storyboard</h1></div><div className="head-meta"><span>Production reference</span></div></div><div className="asset-grid storyboard-grid">{assets.map(asset=><div className="reference-preview storyboard-preview" key={asset.id}><img src={asset.downloadUrl} alt={asset.name}/><small>{asset.name}</small></div>)}<AssetUpload owner={{kind:"project",id:"room-714",episodeId:"01"}} type="storyboard" label="Upload storyboard" hint="Episode 01 visual sequence" onUploaded={asset=>setAssets(current=>[asset,...current])}/></div></div>}
+function StoryboardStudio(){const owner:AssetOwner={kind:"project",id:"room-714",episodeId:"01"}; const [assets,setAssets]=useOwnerAssets(owner); return <div className="studio"><div className="studio-head"><div><small>ROOM 714 / EPISODE 01</small><h1>Storyboard</h1></div><div className="head-meta"><span>Production reference</span></div></div><div className="asset-grid storyboard-grid">{assets.map(asset=><div className="reference-preview storyboard-preview" key={asset.id}><img src={asset.downloadUrl} alt={asset.name}/><small>{asset.name}</small></div>)}<AssetUpload owner={owner} type="storyboard" label="Upload storyboard" hint="Episode 01 visual sequence" onUploaded={asset=>setAssets(current=>[asset,...current])}/></div></div>}
 
 function LocationStudio(){return <div className="studio"><div className="studio-head"><div><small>LOCATION 001</small><h1>Hotel corridor · Room 714</h1></div><div className="head-meta"><span>Night</span><span>Interior</span></div></div><div className="canvas empty-canvas"><div className="empty-state"><div className="empty-symbol">＋</div><h2>Add location references</h2><p>Reference images establish architecture, materials, lighting and spatial anchors for continuity.</p><button className="secondary-action">Add reference</button></div></div><div className="shot-summary"><div><label>SPATIAL ANCHORS</label><p>Door 714 · right side of corridor<br/>Approach zone · before door 714</p></div><div><label>ENVIRONMENT</label><div className="state-pills"><span>Warm cinematic light</span><span>Door · closed</span><span>Night</span></div></div></div></div>}
 
