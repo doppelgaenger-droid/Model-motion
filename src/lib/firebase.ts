@@ -3,17 +3,16 @@ import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCi3XW-9Metb9h6eRjVNhRFDDHsuaTTzQM",
+  authDomain: "model-motion.firebaseapp.com",
+  projectId: "model-motion",
+  storageBucket: "model-motion.firebasestorage.app",
+  messagingSenderId: "843468130335",
+  appId: "1:843468130335:web:db1c6dcdbd95b87b052d2a",
 };
 
-const missing = Object.entries(firebaseConfig).filter(([, value]) => !value).map(([key]) => key);
-export const firebaseConfigured = missing.length === 0;
-export const firebaseConfigurationError = firebaseConfigured ? null : `Missing Firebase configuration: ${missing.join(", ")}`;
-
-const app = firebaseConfigured ? initializeApp(firebaseConfig) : null;
-export const storage = app ? getStorage(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const firebaseConfigured = true;
+export const firebaseConfigurationError: string | null = null;
+const app = initializeApp(firebaseConfig);
+export const storage = getStorage(app);
+export const db = getFirestore(app);
