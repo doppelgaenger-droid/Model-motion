@@ -1,9 +1,10 @@
+import { ensureLilyProject } from "./projects/lily";
 import { useEffect, useState } from "react";
 import { AssetUpload } from "./components/AssetUpload";
 import { listCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
 import { AuthGate } from "./components/AuthGate";
 
-type Selection = "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
+type Selection = "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
   "shot-01": { n:"01", title:"Approach", duration:"6s", action:"Mara walks to room 714 and stops directly in front of the closed door.", status:"Ready" },
   "shot-02": { n:"02", title:"Turn", duration:"4s", action:"A male voice calls “Mara?” from behind. Mara stays in place and turns toward the corridor.", status:"Draft" },
@@ -17,35 +18,39 @@ function NavRow({active,icon,title,meta,onClick}:{active:boolean;icon:string;tit
 
 export function App(){
   const [selected,setSelected]=useState<Selection>("shot-01");
-  const isShot=selected.startsWith("shot-");
+  const [project,setProject]=useState<"room-714"|"lily">("room-714");
+  const [projectError,setProjectError]=useState("");
+  const switchProject=async (next:"room-714"|"lily")=>{if(next==="lily"){try{await ensureLilyProject();setProjectError("");}catch(e){setProjectError(e instanceof Error?e.message:String(e));return;}}setProject(next);setSelected(next==="lily"?"lily":"shot-01");};
+  const isShot=project==="room-714" && selected.startsWith("shot-");
   const shot=isShot?shotData[selected as keyof typeof shotData]:null;
 
   return <AuthGate><div className="workspace">
     <header className="appbar">
       <div className="wordmark">MODEL <b>MOTION</b></div>
-      <div className="project-switch"><span>Room 714</span><small>Project 001</small></div>
+      <div className="project-switch"><select aria-label="Active project" value={project} onChange={e=>void switchProject(e.target.value as "room-714"|"lily")}><option value="room-714">Room 714 · Project 001</option><option value="lily">Lily · Project 002</option></select></div>
       <div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
     </header>
 
     <aside className="navigator">
-      <div className="nav-title"><span>PROJECT</span><button>＋</button></div>
-      <div className="tree-section"><h3>CHARACTERS <span>1</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001" onClick={()=>setSelected("mara")}/></div>
-      <div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
+      <div className="nav-title"><span>PROJECT</span><small>{project==="lily"?"002":"001"}</small></div>{projectError&&<p role="alert">{projectError}</p>}
+      <div className="tree-section"><h3>CHARACTERS <span>1</span></h3>{project==="lily"?<NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002" onClick={()=>setSelected("lily")}/>:<NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001" onClick={()=>setSelected("mara")}/>}</div>
+      {project==="room-714"&&<><div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
       <div className="tree-section scenes"><h3>SCENES <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
         {(Object.keys(shotData) as Array<keyof typeof shotData>).map(k=><button key={k} className={"shot-nav "+(selected===k?"active":"")} onClick={()=>setSelected(k)}><span>{shotData[k].n}</span><b>{shotData[k].title}</b><small>{shotData[k].duration}</small></button>)}
       </div>
-      <div className="nav-bottom"><button onClick={()=>setSelected("storyboard")}>＋ Storyboard</button></div>
+      <div className="nav-bottom"><button onClick={()=>setSelected("storyboard")}>＋ Storyboard</button></div></>}
     </aside>
 
     <main className="content">
       {selected==="mara" && <CharacterStudio/>}
+      {selected==="lily" && <LilyStudio/>}
       {selected==="location" && <LocationStudio/>}
       {selected==="storyboard" && <StoryboardStudio/>}
       {shot && <ShotStudio shot={shot}/>}
     </main>
 
     <aside className="inspector">
-      {selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
+      {selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
     </aside>
 
     {shot && <section className="takes">
@@ -78,3 +83,6 @@ function StoryboardInspector(){return <><div className="inspector-head"><span>ST
 function LocationInspector(){return <><div className="inspector-head"><span>LOCATION INSPECTOR</span><b>Canonical</b></div><InspectorGroup title="LOCATION"><Row k="ID" v="Room 714"/><Row k="References" v="0"/><Row k="Anchors" v="2"/></InspectorGroup><InspectorGroup title="DEFAULT STATE"><Row k="Time" v="Night"/><Row k="Lighting" v="Warm"/><Row k="Door 714" v="Closed"/></InspectorGroup></>}
 function InspectorGroup({title,children}:{title:string;children:React.ReactNode}){return <section className="inspect-group"><h3>{title}</h3>{children}</section>}
 function Row({k,v}:{k:string;v:string}){return <div className="inspect-row"><span>{k}</span><b>{v}</b></div>}
+
+function LilyStudio(){const owner:AssetOwner={kind:"character",id:"character-lily-001"};const [assets,setAssets]=useOwnerAssets(owner);return <div className="studio"><div className="studio-head"><div><small>PROJECT 002 / CHARACTER 002</small><h1>Lily</h1></div><div className="head-meta"><span>Canonical v1.0</span><span>Private</span></div></div><div className="asset-grid">{assets.map(asset=><div className="reference-preview" key={asset.id}><img src={asset.downloadUrl} alt={asset.name}/><small>{asset.type}</small></div>)}<AssetUpload owner={owner} type="character-board" label="Upload Lily character kit" hint="Use the generated Lily board" onUploaded={a=>setAssets(v=>[a,...v])}/><AssetUpload owner={owner} type="identity-reference" label="Upload original Lily screenshot" hint="Primary visual baseline" onUploaded={a=>setAssets(v=>[a,...v])}/><div className="character-notes"><label>IDENTITY LOCK</label><h2>Lily · 24</h2><p>Blue/cyan short bob with bangs and pink highlights. Brown eyes. Gamer / streamer. Cyber · Cute · Neon.</p><div className="state-pills"><span>Face reference</span><span>Hair locked</span><span>Visual DNA v1.0</span></div></div></div></div>}
+function LilyInspector(){return <><div className="inspector-head"><span>CHARACTER INSPECTOR</span><b>Canonical</b></div><InspectorGroup title="IDENTITY"><Row k="Project" v="002 · Lily"/><Row k="Age" v="24"/><Row k="Version" v="1.0"/></InspectorGroup><InspectorGroup title="VISUAL DNA"><Row k="Hair" v="Blue/cyan bob"/><Row k="Eyes" v="Brown"/><Row k="Style" v="Cyber / Cute / Neon"/></InspectorGroup><InspectorGroup title="ASSETS"><p className="muted">Upload the original reference and character kit. Assets are stored privately in Firebase Storage with metadata in Firestore.</p></InspectorGroup></>}
