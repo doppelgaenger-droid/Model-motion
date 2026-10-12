@@ -45,6 +45,7 @@ export function CharacterAssetAudit() {
   }
   const candidates = preview.filter(item => item.status === "candidate");
   const ready = status === "ready" && !migrating && candidates.length > 0 && preview.length === 6 &&
+    !assets.some(asset => asset.schemaVersion === 3 && asset.characterId && asset.owner?.kind === "character") &&
     preview.every(item => item.status === "candidate") &&
     rows.every(row => row.total === 1 && row.missingMetadata === 0 && row.duplicatePaths === 0) &&
     checks !== null && checks.length === 6 && checks.every(check => check.status === "verified");
