@@ -73,3 +73,15 @@ export async function deleteCreativeAsset(asset: UploadedCreativeAsset, owner: A
   await deleteObject(ref(storage, asset.storagePath));
   await deleteDoc(doc(db, "creativeAssets", asset.id));
 }
+
+/** Stable visual order for character reference slots, regardless of upload time. */
+const assetTypeOrder: Record<CreativeAssetType,number> = {
+  "identity-reference":0,
+  "character-board":1,
+  "full-body-reference":2,
+  "storyboard":3,
+  "location-reference":4,
+};
+export function sortCreativeAssets(assets:UploadedCreativeAsset[]):UploadedCreativeAsset[] {
+  return [...assets].sort((a,b)=>assetTypeOrder[a.type]-assetTypeOrder[b.type] || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+}
