@@ -14,6 +14,8 @@ export interface UploadedCreativeAsset {
   type: CreativeAssetType;
   owner: AssetOwner;
   projectId: string;
+  schemaVersion?: number;
+  characterId?: string;
   uploadedBy: string;
   storagePath: string;
   downloadUrl: string;
@@ -56,7 +58,15 @@ export async function listCreativeAssets(owner: AssetOwner): Promise<UploadedCre
   const snapshot = await getDocs(query(collection(db, "creativeAssets"), where("uploadedBy", "==", user.uid)));
   return snapshot.docs
     .map(doc => ({ id:doc.id, ...doc.data() } as UploadedCreativeAsset))
-    .filter(asset => asset.projectId === projectIdFor(owner) && asset.owner?.kind === owner.kind && asset.owner?.id === owner.id && (owner.kind !== "project" || (asset.owner.kind === "project" && asset.owner.episodeId === owner.episodeId)));
+    .filter(asset => {
+      if (owner.kind === "character") {
+        // Global character records use characterId. Legacy records remain readable
+        // through their original project-scoped owner without copying or deleting files.
+        if (asset.characterId === owner.id) return true;
+        return asset.owner?.kind === "character" && asset.owner.id === owner.id && asset.projectId === owner.projectId;
+      }
+      return asset.projectId === owner.id && asset.owner?.kind === "project" && asset.owner.id === owner.id && asset.owner.episodeId === owner.episodeId;
+    });
 }
 
 /** Delete only an asset belonging to the signed-in user and the active project. */
