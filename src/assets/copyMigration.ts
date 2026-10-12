@@ -1,4 +1,4 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, getDocs, query, serverTimestamp, where } from "firebase/firestore";
 import { getBlob, getDownloadURL, getMetadata, ref, uploadBytes } from "firebase/storage";
 import { auth, db, storage } from "../lib/firebase";
 import { previewCharacterMigration } from "./migrationPreview";
@@ -25,12 +25,22 @@ export async function copyCharacterReferences(
   if (candidates.some(row => assets.find(asset => asset.id === row.assetId)?.uploadedBy !== user.uid)) {
     throw new Error("Asset owner does not match the authenticated user.");
   }
+  const current = await getDocs(query(collection(db, "creativeAssets"), where("uploadedBy", "==", user.uid)));
+  const existing = current.docs.map(item => item.data());
+  for (const row of candidates) {
+    if (existing.some(record => record.storagePath === row.destinationPath || record.migratedFromAssetId === row.assetId)) {
+      throw new Error(`Migration already registered for ${row.assetId}; refresh the inventory before retrying.`);
+    }
+  }
   let copied = 0;
   onProgress(0, candidates.length);
   for (const row of candidates) {
     const original = assets.find(asset => asset.id === row.assetId);
     if (!original || original.owner.kind !== "character") throw new Error("Invalid character asset.");
     const source = ref(storage, row.sourcePath);
+    if (!row.sourcePath.startsWith(`model-motion/users/${user.uid}/projects/`) || !row.destinationPath.startsWith(`model-motion/users/${user.uid}/characters/${row.characterId}/${row.slot}/`)) {
+      throw new Error(`Unexpected migration path for ${row.assetId}`);
+    }
     const destination = ref(storage, row.destinationPath);
     const sourceMetadata = await getMetadata(source);
     if (sourceMetadata.size !== original.size) throw new Error(`Source size mismatch for ${row.assetId}`);
@@ -42,7 +52,7 @@ export async function copyCharacterReferences(
     }
     const blob = await getBlob(source);
     const sourceHash = await sha256(blob);
-    await uploadBytes(destination, blob, { contentType: original.mimeType });
+    await uploadBytes(destination, blob, { contentType: original.mimeType, customMetadata: { migratedFromAssetId: original.id, sourceSha256: sourceHash } });
     const copiedBlob = await getBlob(destination);
     if (await sha256(copiedBlob) !== sourceHash) throw new Error(`Copy verification failed for ${row.assetId}`);
     const downloadUrl = await getDownloadURL(destination);
