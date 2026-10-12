@@ -1,4 +1,5 @@
-import { UINotice } from "../foundation/ui/feedback";
+import { copyCharacterReferences } from "../assets/copyMigration";
+import { UIConfirmDialog, UIProgress, UINotice } from "../foundation/ui/feedback";
 import { UIButton } from "../foundation/ui/controls";
 import { previewCharacterMigration } from "../assets/migrationPreview";
 import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
@@ -14,6 +15,10 @@ export function CharacterAssetAudit() {
   const [error, setError] = useState("");
   const [checks, setChecks] = useState<StorageCheck[] | null>(null);
   const [checking, setChecking] = useState(false);
+  const [confirmMigration, setConfirmMigration] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [migrationMessage, setMigrationMessage] = useState("");
   const refresh = useCallback(async () => {
     setStatus("loading");
     setChecks(null);
@@ -38,6 +43,25 @@ export function CharacterAssetAudit() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Storage check failed"); }
     finally { setChecking(false); }
   }
+  const candidates = preview.filter(item => item.status === "candidate");
+  const ready = status === "ready" && !migrating && candidates.length > 0 && preview.length === 6 &&
+    preview.every(item => item.status === "candidate") &&
+    rows.every(row => row.total === 1 && row.missingMetadata === 0 && row.duplicatePaths === 0) &&
+    checks !== null && checks.length === 6 && checks.every(check => check.status === "verified");
+  async function migrate() {
+    if (!ready) return;
+    setMigrating(true);
+    setMigrationMessage("");
+    try {
+      const result = await copyCharacterReferences(assets, (done, total) => setProgress({ done, total }));
+      setMigrationMessage(`${result.copied} verified copies registered. Original records and objects preserved. Refresh inventory to review global records.`);
+      setConfirmMigration(false);
+      await refresh();
+    } catch (cause) {
+      setMigrationMessage(cause instanceof Error ? cause.message : "Migration interrupted; originals remain unchanged.");
+      setConfirmMigration(false);
+    } finally { setMigrating(false); }
+  }
   return <div className="studio">
     <div className="studio-head"><div><small>PRIVATE WORKSPACE / READ ONLY</small><h1>Character asset audit</h1></div><div className="head-meta"><UIButton onClick={() => void refresh()} disabled={status === "loading"}>Refresh inventory</UIButton></div></div>
     <div className="character-notes">
@@ -60,6 +84,13 @@ export function CharacterAssetAudit() {
             </tr>)}</tbody>
           </table>
         </div>
+        <h2>F2.7 · Safe migration</h2>
+        <p>Copy-first migration requires exactly six valid legacy references and a fresh successful Storage check. Originals are never deleted.</p>
+        <UIButton variant="primary" disabled={!ready} onClick={() => setConfirmMigration(true)}>Review safe migration</UIButton>
+        {!ready && <UINotice>Migration locked: verify all six Storage objects and ensure six candidate records with no conflicts.</UINotice>}
+        {migrating && <UIProgress current={progress.done} total={progress.total} label="Copying and verifying references"/>}
+        {migrationMessage && <UINotice tone={migrationMessage.includes("verified copies") ? "success" : "error"}>{migrationMessage}</UINotice>}
+        <UIConfirmDialog open={confirmMigration} title="Copy six character references?" description="This creates verified copies and new Firestore records. Existing images and legacy records will remain untouched. Do not close this page during migration." confirmLabel="Copy and verify" busy={migrating} onCancel={() => setConfirmMigration(false)} onConfirm={() => void migrate()}/>
         <h2>F2.6 · Migration dry run</h2>
         <p>Preview only. No objects or metadata are changed. Destination existence is not checked unless already referenced by Firestore.</p>
         <p>{preview.filter(item => item.status === "candidate").length} candidates · {preview.filter(item => item.status === "already-global").length} global · {preview.filter(item => item.status === "conflict").length} conflicts · {preview.filter(item => item.status === "invalid").length} invalid</p>
