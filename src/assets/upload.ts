@@ -24,7 +24,7 @@ export interface UploadedCreativeAsset {
 function safeName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 }
-function projectIdFor(owner: AssetOwner) { return owner.kind === "project" ? owner.id : "room-714"; }
+function projectIdFor(owner: AssetOwner) { return owner.kind === "project" ? owner.id : owner.id === "character-lily-001" ? "lily" : "room-714"; }
 
 export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: CreativeAssetType): Promise<UploadedCreativeAsset> {
   if (!storage || !db) throw new Error(firebaseConfigurationError ?? "Firebase is not configured");
