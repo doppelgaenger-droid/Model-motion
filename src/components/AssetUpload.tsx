@@ -18,7 +18,7 @@ export function AssetUpload({ owner, type, onUploaded, existing }:{
   async function select(file?: File) {
     if (!file) return;
     setBusy(true); setError(null);
-    try { const next = await uploadCreativeAsset(file, owner, type); if (existing) { try { await deleteCreativeAsset(existing, owner); } catch (error) { await deleteCreativeAsset(next, owner).catch(() => undefined); throw error; } } onUploaded?.(next); }
+    try { const next = await uploadCreativeAsset(file, owner, type); if (existing && !(owner.kind === "character" && existing.schemaVersion !== 3)) { try { await deleteCreativeAsset(existing, owner); } catch (error) { await deleteCreativeAsset(next, owner).catch(() => undefined); throw error; } } onUploaded?.(next); }
     catch (e) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setBusy(false); if (input.current) input.current.value = ""; }
   }
