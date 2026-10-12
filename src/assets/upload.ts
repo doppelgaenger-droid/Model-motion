@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
 
@@ -57,4 +57,19 @@ export async function listCreativeAssets(owner: AssetOwner): Promise<UploadedCre
   return snapshot.docs
     .map(doc => ({ id:doc.id, ...doc.data() } as UploadedCreativeAsset))
     .filter(asset => asset.projectId === projectIdFor(owner) && asset.owner?.kind === owner.kind && asset.owner?.id === owner.id && (owner.kind !== "project" || (asset.owner.kind === "project" && asset.owner.episodeId === owner.episodeId)));
+}
+
+/** Delete only an asset belonging to the signed-in user and the active project. */
+export async function deleteCreativeAsset(asset: UploadedCreativeAsset, owner: AssetOwner): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before deleting assets.");
+  if (asset.uploadedBy !== user.uid || asset.projectId !== projectIdFor(owner) ||
+      asset.owner?.kind !== owner.kind || asset.owner?.id !== owner.id) {
+    throw new Error("This asset does not belong to the selected project.");
+  }
+  const expectedPrefix = `model-motion/users/${user.uid}/projects/${projectIdFor(owner)}/`;
+  if (!asset.storagePath.startsWith(expectedPrefix)) throw new Error("Invalid asset storage path.");
+  // Keep the Firestore record when Storage deletion fails, so the user can retry.
+  await deleteObject(ref(storage, asset.storagePath));
+  await deleteDoc(doc(db, "creativeAssets", asset.id));
 }
