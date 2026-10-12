@@ -3,7 +3,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
 
 export type AssetOwner =
-  | { kind: "character"; id: string }
+  | { kind: "character"; id: string; projectId: string }
   | { kind: "project"; id: string; episodeId?: string };
 
 export type CreativeAssetType = "character-board" | "identity-reference" | "full-body-reference" | "storyboard" | "location-reference";
@@ -24,7 +24,7 @@ export interface UploadedCreativeAsset {
 function safeName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 }
-function projectIdFor(owner: AssetOwner) { return owner.kind === "project" ? owner.id : owner.id === "character-lily-001" ? "lily" : "room-714"; }
+function projectIdFor(owner: AssetOwner) { return owner.kind === "project" ? owner.id : owner.projectId; }
 
 export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: CreativeAssetType): Promise<UploadedCreativeAsset> {
   if (!storage || !db) throw new Error(firebaseConfigurationError ?? "Firebase is not configured");
@@ -41,7 +41,7 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
 
   try {
     const downloadUrl = await getDownloadURL(objectRef);
-    const metadata = { name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
+    const metadata = { schemaVersion:2, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
     return { id:document.id, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
   } catch (error) {
@@ -56,5 +56,5 @@ export async function listCreativeAssets(owner: AssetOwner): Promise<UploadedCre
   const snapshot = await getDocs(query(collection(db, "creativeAssets"), where("uploadedBy", "==", user.uid)));
   return snapshot.docs
     .map(doc => ({ id:doc.id, ...doc.data() } as UploadedCreativeAsset))
-    .filter(asset => asset.owner?.kind === owner.kind && asset.owner?.id === owner.id && (owner.kind !== "project" || (asset.owner.kind === "project" && asset.owner.episodeId === owner.episodeId)));
+    .filter(asset => asset.projectId === projectIdFor(owner) && asset.owner?.kind === owner.kind && asset.owner?.id === owner.id && (owner.kind !== "project" || (asset.owner.kind === "project" && asset.owner.episodeId === owner.episodeId)));
 }
