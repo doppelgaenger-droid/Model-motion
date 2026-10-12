@@ -1,3 +1,4 @@
+import { previewCharacterMigration } from "../assets/migrationPreview";
 import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
 import { useCallback, useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -27,6 +28,7 @@ export function CharacterAssetAudit() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const rows = auditCharacterAssets(assets);
+  const preview = previewCharacterMigration(assets);
   const characterAssets = assets.filter(asset => asset.characterId?.startsWith("character-") || asset.owner?.kind === "character");
   async function verify() {
     setChecking(true);
@@ -53,6 +55,20 @@ export function CharacterAssetAudit() {
               <td>{row.characterId.includes("mara") ? "Mara" : "Lily"}</td>
               <td>{row.slot}</td><td>{row.total}</td><td>{row.global}</td><td>{row.legacy}</td>
               <td>{[row.total === 0 ? "Missing" : "",row.total > 1 ? "Multiple records" : "",row.duplicatePaths ? "Duplicate paths" : "",row.missingMetadata ? "Incomplete metadata" : ""].filter(Boolean).join(" · ") || "—"}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+        <h2>F2.6 · Migration dry run</h2>
+        <p>Preview only. No objects or metadata are changed. Destination existence is not checked unless already referenced by Firestore.</p>
+        <p>{preview.filter(item => item.status === "candidate").length} candidates · {preview.filter(item => item.status === "already-global").length} global · {preview.filter(item => item.status === "conflict").length} conflicts · {preview.filter(item => item.status === "invalid").length} invalid</p>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",textAlign:"left",borderSpacing:"12px"}}>
+            <thead><tr><th>Character / slot</th><th>Source</th><th>Proposed destination</th><th>Status</th></tr></thead>
+            <tbody>{preview.map(item => <tr key={item.assetId}>
+              <td>{item.characterId} / {item.slot}</td>
+              <td style={{overflowWrap:"anywhere"}}>{item.sourcePath}</td>
+              <td style={{overflowWrap:"anywhere"}}>{item.destinationPath}</td>
+              <td>{item.status} · {item.reason}</td>
             </tr>)}</tbody>
           </table>
         </div>
