@@ -1,3 +1,4 @@
+import { UISelect } from "./foundation/ui/controls";
 import { CharacterAssetAudit } from "./components/CharacterAssetAudit";
 import { ensureLilyProject } from "./projects/lily";
 import { useEffect, useState } from "react";
@@ -47,7 +48,7 @@ export function App(){
   return <AuthGate><div className="workspace">
     <header className="appbar">
       <div className="wordmark">MODEL <b>MOTION</b></div>
-      <div className="project-switch"><select aria-label="Active production (legacy)" value={project} onChange={e=>void switchProject(e.target.value as "room-714"|"lily")}><option value="room-714">Room 714 · Project 001</option><option value="lily">Legacy Lily workspace · 002</option></select></div>
+      <div className="project-switch"><UISelect aria-label="Active production (legacy)" value={project} onChange={e=>void switchProject(e.target.value as "room-714"|"lily")}><option value="room-714">Room 714 · Project 001</option><option value="lily">Legacy Lily workspace · 002</option></UISelect></div>
       <div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
     </header>
 
