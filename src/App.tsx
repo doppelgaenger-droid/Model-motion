@@ -17,9 +17,27 @@ function NavRow({active,icon,title,meta,onClick}:{active:boolean;icon:string;tit
   return <button className={"nav-row "+(active?"active":"")} onClick={onClick}><span className="nav-icon">{icon}</span><span><b>{title}</b><small>{meta}</small></span></button>;
 }
 
+type ProjectId = "room-714" | "lily";
+const PROJECT_KEY = "model-motion:active-project";
+function initialProject(): ProjectId {
+  try {
+    const urlProject = new URLSearchParams(window.location.search).get("project");
+    if (urlProject === "lily" || urlProject === "room-714") return urlProject;
+    return window.localStorage.getItem(PROJECT_KEY) === "lily" ? "lily" : "room-714";
+  } catch { return "room-714"; }
+}
+
 export function App(){
-  const [selected,setSelected]=useState<Selection>("shot-01");
-  const [project,setProject]=useState<"room-714"|"lily">("room-714");
+  const [project,setProject]=useState<ProjectId>(initialProject);
+  const [selected,setSelected]=useState<Selection>(()=>initialProject()==="lily"?"lily":"shot-01");
+  useEffect(()=>{
+    try {
+      window.localStorage.setItem(PROJECT_KEY,project);
+      const url = new URL(window.location.href);
+      url.searchParams.set("project",project);
+      window.history.replaceState(window.history.state,"",url.toString());
+    } catch { /* Storage may be blocked; the current selection still works. */ }
+  },[project]);
   const [projectError,setProjectError]=useState("");
   const switchProject=async (next:"room-714"|"lily")=>{if(next==="lily"){try{await ensureLilyProject();setProjectError("");}catch(e){setProjectError(e instanceof Error?e.message:String(e));return;}}setProject(next);setSelected(next==="lily"?"lily":"shot-01");};
   const isShot=project==="room-714" && selected.startsWith("shot-");
