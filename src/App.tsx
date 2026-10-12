@@ -1,3 +1,4 @@
+import { GeneratorStudio } from "./components/GeneratorStudio";
 import { CharacterAssetAudit } from "./components/CharacterAssetAudit";
 import { ensureLilyProject } from "./projects/lily";
 import { useEffect, useState } from "react";
@@ -6,7 +7,7 @@ import { AssetGallery } from "./components/AssetGallery";
 import { listCreativeAssets, sortCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
 import { AuthGate } from "./components/AuthGate";
 
-type Selection = "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
+type Selection = "generator" | "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
   "shot-01": { n:"01", title:"Approach", duration:"6s", action:"Mara walks to room 714 and stops directly in front of the closed door.", status:"Ready" },
   "shot-02": { n:"02", title:"Turn", duration:"4s", action:"A male voice calls “Mara?” from behind. Mara stays in place and turns toward the corridor.", status:"Draft" },
@@ -54,7 +55,7 @@ export function App(){
     <aside className="navigator">
       <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>{projectError&&<p role="alert">{projectError}</p>}
       <div className="tree-section"><h3>CHARACTER LIBRARY <span>2</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001 · Global" onClick={()=>setSelected("mara")}/><NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002 · Global" onClick={()=>setSelected("lily")}/></div>
-      <div className="tree-section"><h3>LIBRARY TOOLS</h3><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
+      <div className="tree-section"><h3>LIBRARY TOOLS</h3><NavRow active={selected==="generator"} icon="✦" title="Generator Studio" meta="Remote API · Private" onClick={()=>setSelected("generator")}/><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
       {project==="room-714"&&<><div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
       <div className="tree-section scenes"><h3>SCENES <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
         {(Object.keys(shotData) as Array<keyof typeof shotData>).map(k=><button key={k} className={"shot-nav "+(selected===k?"active":"")} onClick={()=>setSelected(k)}><span>{shotData[k].n}</span><b>{shotData[k].title}</b><small>{shotData[k].duration}</small></button>)}
@@ -63,6 +64,7 @@ export function App(){
     </aside>
 
     <main className="content">
+      {selected==="generator" && <GeneratorStudio/>}
       {selected==="audit" && <CharacterAssetAudit/>}
       {selected==="mara" && <CharacterStudio/>}
       {selected==="lily" && <LilyStudio/>}
@@ -72,7 +74,7 @@ export function App(){
     </main>
 
     <aside className="inspector">
-      {selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
+      {selected==="generator"?<div className="inspector-head"><span>GENERATOR</span><b>API prototype</b></div>:selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
     </aside>
 
     {shot && <section className="takes">
