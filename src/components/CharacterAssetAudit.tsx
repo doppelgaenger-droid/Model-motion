@@ -1,3 +1,4 @@
+import { UIButton } from "../foundation/ui/controls";
 import { previewCharacterMigration } from "../assets/migrationPreview";
 import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
 import { useCallback, useEffect, useState } from "react";
@@ -37,7 +38,7 @@ export function CharacterAssetAudit() {
     finally { setChecking(false); }
   }
   return <div className="studio">
-    <div className="studio-head"><div><small>PRIVATE WORKSPACE / READ ONLY</small><h1>Character asset audit</h1></div><div className="head-meta"><button type="button" onClick={() => void refresh()} disabled={status === "loading"}>Refresh inventory</button></div></div>
+    <div className="studio-head"><div><small>PRIVATE WORKSPACE / READ ONLY</small><h1>Character asset audit</h1></div><div className="head-meta"><UIButton onClick={() => void refresh()} disabled={status === "loading"}>Refresh inventory</UIButton></div></div>
     <div className="character-notes">
       <h2>Firebase metadata inventory</h2>
       <p>This report reads your private Firestore asset records without changing or deleting them. Storage object existence and file checksums are not verified.</p>
@@ -45,11 +46,11 @@ export function CharacterAssetAudit() {
       {status === "error" && <p role="alert">{error}</p>}
       {status === "ready" && <>
         <p role="status">{assets.length} total asset records · {rows.reduce((sum, row) => sum + row.total, 0)} canonical character reference records</p>
-        <button type="button" disabled={checking} onClick={() => void verify()}>{checking ? "Checking Storage…" : "Verify Storage objects"}</button>
+        <UIButton variant="primary" disabled={checking} onClick={() => void verify()}>{checking ? "Checking Storage…" : "Verify Storage objects"}</UIButton>
         {checks && <p role="status">Storage: {checks.filter(check => check.status === "verified").length} verified · {checks.filter(check => check.status !== "verified").length} not verified. This checks existence, not file content or checksums.</p>}
         {checks?.filter(check => check.status !== "verified").map(check => <p key={check.id} role="alert">{check.id}: {check.status} · {check.details}</p>)}
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",textAlign:"left",borderSpacing:"12px"}}>
+          <table className="mm-audit-table">
             <thead><tr><th>Character</th><th>Slot</th><th>Total</th><th>Global</th><th>Legacy</th><th>Issues</th></tr></thead>
             <tbody>{rows.map(row => <tr key={row.characterId + row.slot}>
               <td>{row.characterId.includes("mara") ? "Mara" : "Lily"}</td>
@@ -62,7 +63,7 @@ export function CharacterAssetAudit() {
         <p>Preview only. No objects or metadata are changed. Destination existence is not checked unless already referenced by Firestore.</p>
         <p>{preview.filter(item => item.status === "candidate").length} candidates · {preview.filter(item => item.status === "already-global").length} global · {preview.filter(item => item.status === "conflict").length} conflicts · {preview.filter(item => item.status === "invalid").length} invalid</p>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",textAlign:"left",borderSpacing:"12px"}}>
+          <table className="mm-audit-table">
             <thead><tr><th>Character / slot</th><th>Source</th><th>Proposed destination</th><th>Status</th></tr></thead>
             <tbody>{preview.map(item => <tr key={item.assetId}>
               <td>{item.characterId} / {item.slot}</td>
