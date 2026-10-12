@@ -37,15 +37,17 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
 
   const projectId = projectIdFor(owner);
   const episode = owner.kind === "project" && owner.episodeId ? `/episodes/${owner.episodeId}` : "";
-  const storagePath = `model-motion/users/${user.uid}/projects/${projectId}/${owner.kind}s/${owner.id}${episode}/${type}/${Date.now()}-${safeName(file.name)}`;
+  const storagePath = owner.kind === "character"
+    ? `model-motion/users/${user.uid}/characters/${owner.id}/${type}/${Date.now()}-${safeName(file.name)}`
+    : `model-motion/users/${user.uid}/projects/${projectId}/${owner.kind}s/${owner.id}${episode}/${type}/${Date.now()}-${safeName(file.name)}`;
   const objectRef = ref(storage, storagePath);
   await uploadBytes(objectRef, file, { contentType: file.type });
 
   try {
     const downloadUrl = await getDownloadURL(objectRef);
-    const metadata = { schemaVersion:2, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
+    const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
-    return { id:document.id, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
+    return { id:document.id, schemaVersion:metadata.schemaVersion, characterId:metadata.characterId ?? undefined, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
   } catch (error) {
     await deleteObject(objectRef).catch(() => undefined);
     throw error;
@@ -73,12 +75,15 @@ export async function listCreativeAssets(owner: AssetOwner): Promise<UploadedCre
 export async function deleteCreativeAsset(asset: UploadedCreativeAsset, owner: AssetOwner): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error("Sign in before deleting assets.");
-  if (asset.uploadedBy !== user.uid || asset.projectId !== projectIdFor(owner) ||
-      asset.owner?.kind !== owner.kind || asset.owner?.id !== owner.id) {
+  if (asset.uploadedBy !== user.uid || asset.owner?.kind !== owner.kind || asset.owner?.id !== owner.id ||
+      (owner.kind === "project" && asset.projectId !== owner.id) ||
+      (owner.kind === "character" && asset.characterId !== owner.id && asset.projectId !== owner.projectId)) {
     throw new Error("This asset does not belong to the selected project.");
   }
-  const expectedPrefix = `model-motion/users/${user.uid}/projects/${projectIdFor(owner)}/`;
-  if (!asset.storagePath.startsWith(expectedPrefix)) throw new Error("Invalid asset storage path.");
+  const globalPrefix = `model-motion/users/${user.uid}/characters/${owner.id}/`;
+  const legacyPrefix = `model-motion/users/${user.uid}/projects/${projectIdFor(owner)}/`;
+  if (!(owner.kind === "character" && asset.characterId === owner.id && asset.storagePath.startsWith(globalPrefix)) &&
+      !asset.storagePath.startsWith(legacyPrefix)) throw new Error("Invalid asset storage path.");
   // Keep the Firestore record when Storage deletion fails, so the user can retry.
   await deleteObject(ref(storage, asset.storagePath));
   await deleteDoc(doc(db, "creativeAssets", asset.id));
