@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./AssetGallery.css";
-import { deleteCreativeAsset, type AssetOwner, type UploadedCreativeAsset } from "../assets/upload";
+import { deleteCreativeAsset, sortCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "../assets/upload";
 
 export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreativeAsset[];owner:AssetOwner;onDeleted:(id:string)=>void}) {
   const [active,setActive]=useState<UploadedCreativeAsset|null>(null);
@@ -21,7 +21,7 @@ export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreative
     finally {setDeleting(null); }
   }
   return <>
-    {assets.map(asset=><div className="reference-preview mm-asset-card" key={asset.id}>
+    {sortCreativeAssets(assets).map(asset=><div className="reference-preview mm-asset-card" key={asset.id}>
       <button type="button" onClick={()=>{setActive(asset);setZoom(1)}} aria-label={`Zoom ${asset.name}`} style={{display:"block",width:"100%",padding:0,border:0,background:"transparent",cursor:"zoom-in"}}>
         <img src={asset.downloadUrl} alt={asset.name}/>
       </button>
