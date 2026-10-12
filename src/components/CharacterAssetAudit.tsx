@@ -1,3 +1,4 @@
+import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
 import { useCallback, useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
@@ -8,8 +9,11 @@ export function CharacterAssetAudit() {
   const [assets, setAssets] = useState<UploadedCreativeAsset[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
+  const [checks, setChecks] = useState<StorageCheck[] | null>(null);
+  const [checking, setChecking] = useState(false);
   const refresh = useCallback(async () => {
     setStatus("loading");
+    setChecks(null);
     try {
       const user = auth.currentUser;
       if (!user) throw new Error("Sign in to inspect your private asset records.");
@@ -23,6 +27,13 @@ export function CharacterAssetAudit() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const rows = auditCharacterAssets(assets);
+  const characterAssets = assets.filter(asset => asset.characterId?.startsWith("character-") || asset.owner?.kind === "character");
+  async function verify() {
+    setChecking(true);
+    try { setChecks(await verifyStorageObjects(characterAssets)); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Storage check failed"); }
+    finally { setChecking(false); }
+  }
   return <div className="studio">
     <div className="studio-head"><div><small>PRIVATE WORKSPACE / READ ONLY</small><h1>Character asset audit</h1></div><div className="head-meta"><button type="button" onClick={() => void refresh()} disabled={status === "loading"}>Refresh inventory</button></div></div>
     <div className="character-notes">
@@ -32,6 +43,9 @@ export function CharacterAssetAudit() {
       {status === "error" && <p role="alert">{error}</p>}
       {status === "ready" && <>
         <p role="status">{assets.length} total asset records · {rows.reduce((sum, row) => sum + row.total, 0)} canonical character reference records</p>
+        <button type="button" disabled={checking} onClick={() => void verify()}>{checking ? "Checking Storage…" : "Verify Storage objects"}</button>
+        {checks && <p role="status">Storage: {checks.filter(check => check.status === "verified").length} verified · {checks.filter(check => check.status !== "verified").length} not verified. This checks existence, not file content or checksums.</p>}
+        {checks?.filter(check => check.status !== "verified").map(check => <p key={check.id} role="alert">{check.id}: {check.status} · {check.details}</p>)}
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",textAlign:"left",borderSpacing:"12px"}}>
             <thead><tr><th>Character</th><th>Slot</th><th>Total</th><th>Global</th><th>Legacy</th><th>Issues</th></tr></thead>
