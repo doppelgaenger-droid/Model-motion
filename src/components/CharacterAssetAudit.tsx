@@ -1,3 +1,4 @@
+import { UINotice } from "../foundation/ui/feedback";
 import { UIButton } from "../foundation/ui/controls";
 import { previewCharacterMigration } from "../assets/migrationPreview";
 import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
@@ -43,11 +44,11 @@ export function CharacterAssetAudit() {
       <h2>Firebase metadata inventory</h2>
       <p>This report reads your private Firestore asset records without changing or deleting them. Storage object existence and file checksums are not verified.</p>
       {status === "loading" && <p role="status">Loading records…</p>}
-      {status === "error" && <p role="alert">{error}</p>}
+      {status === "error" && <UINotice tone="error">{error}</UINotice>}
       {status === "ready" && <>
         <p role="status">{assets.length} total asset records · {rows.reduce((sum, row) => sum + row.total, 0)} canonical character reference records</p>
         <UIButton variant="primary" disabled={checking} onClick={() => void verify()}>{checking ? "Checking Storage…" : "Verify Storage objects"}</UIButton>
-        {checks && <p role="status">Storage: {checks.filter(check => check.status === "verified").length} verified · {checks.filter(check => check.status !== "verified").length} not verified. This checks existence, not file content or checksums.</p>}
+        {checks && <UINotice tone={checks.every(check => check.status === "verified") ? "success" : "error"}>Storage: {checks.filter(check => check.status === "verified").length} verified · {checks.filter(check => check.status !== "verified").length} not verified. This checks existence, not file content or checksums.</UINotice>}
         {checks?.filter(check => check.status !== "verified").map(check => <p key={check.id} role="alert">{check.id}: {check.status} · {check.details}</p>)}
         <div style={{overflowX:"auto"}}>
           <table className="mm-audit-table">
