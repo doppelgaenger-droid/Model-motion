@@ -1,0 +1,14 @@
+{
+  "functions": [
+    {
+      "source": "functions/generator",
+      "codebase": "generator"
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

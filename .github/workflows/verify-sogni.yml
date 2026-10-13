@@ -1,0 +1,30 @@
+name: Verify Sogni Adapter
+on:
+  pull_request:
+    paths:
+      - "functions/generator/**"
+      - "firebase.json"
+      - ".github/workflows/verify-sogni.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify adapter and gateway syntax
+        run: |
+          node --check functions/generator/index.js
+          node --check functions/generator/sogni.js
+          node --check functions/generator/audit-handover.mjs
+          node --test functions/generator/sogni.test.js
+      - name: Validate clean-start UID rules
+        run: |
+          node -e 'const fs=require("node:fs"); for(const p of ["firestore.rules","storage.rules"]){const s=fs.readFileSync(p,"utf8"); if(!s.includes("JZK1aIhqo5Zgl0oEbdCjhlko5qC3") || s.includes("muju7doq6xYWBToKNpMw6LKnbBw1")) process.exit(1)}'
+      - name: Validate Firebase functions configuration
+        run: |
+          node -e 'const c=require("./firebase.json"); if(c.functions[0].source!=="functions/generator" || c.functions[0].codebase!=="generator")process.exit(1)'

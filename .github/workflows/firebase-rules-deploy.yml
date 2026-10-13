@@ -1,0 +1,35 @@
+name: Firebase Rules Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: 'Type model-motion to confirm target'
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: firebase-rules-model-motion
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-rules
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate intended owner
+        run: |
+          node -e 'const fs=require("node:fs");for(const f of ["firestore.rules","storage.rules"]){const s=fs.readFileSync(f,"utf8");if(!s.includes("JZK1aIhqo5Zgl0oEbdCjhlko5qC3")||s.includes("muju7doq6xYWBToKNpMw6LKnbBw1"))process.exit(1)}'
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - name: Deploy rules only
+        run: npx --yes firebase-tools@14 deploy --only firestore:rules,storage --project model-motion --non-interactive
