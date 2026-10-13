@@ -6,6 +6,14 @@ on:
         description: 'Type model-motion to confirm target'
         required: true
         type: string
+      rules_scope:
+        description: 'Deploy Firestore first, then Storage separately'
+        required: true
+        type: choice
+        default: firestore
+        options:
+          - firestore
+          - storage
 permissions:
   contents: read
   id-token: write
@@ -31,5 +39,18 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
           project_id: model-motion
-      - name: Deploy rules only
-        run: npx --yes firebase-tools@14 deploy --only firestore:rules,storage --project model-motion --non-interactive
+      - name: Verify Storage target configuration
+        run: |
+          node -e 'const rc=require("./.firebaserc"); const c=require("./firebase.json"); if(rc.targets?.["model-motion"]?.storage?.main?.[0]!=="model-motion.firebasestorage.app" || c.storage?.[0]?.target!=="main") process.exit(1)'
+      - name: Deploy selected rules only
+        env:
+          RULES_SCOPE: ${{ inputs.rules_scope }}
+        run: |
+          if [ "$RULES_SCOPE" = "firestore" ]; then
+            npx --yes firebase-tools@14 deploy --only firestore:rules --project model-motion --non-interactive
+          elif [ "$RULES_SCOPE" = "storage" ]; then
+            npx --yes firebase-tools@14 deploy --only storage:main --project model-motion --non-interactive
+          else
+            echo 'Unsupported rules scope' >&2
+            exit 1
+          fi
