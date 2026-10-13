@@ -1,5 +1,5 @@
 import { inspectMigrationDestinations, type DestinationCheck } from "../assets/destinationAudit";
-import { copyCharacterReferences } from "../assets/copyMigration";
+import { deleteCreativeAsset } from "../assets/upload";
 import { UIConfirmDialog, UIProgress, UINotice } from "../foundation/ui/feedback";
 import { UIButton } from "../foundation/ui/controls";
 import { previewCharacterMigration } from "../assets/migrationPreview";
@@ -18,10 +18,11 @@ export function CharacterAssetAudit() {
   const [checking, setChecking] = useState(false);
   const [destinationChecks, setDestinationChecks] = useState<DestinationCheck[] | null>(null);
   const [inspectingDestinations, setInspectingDestinations] = useState(false);
-  const [confirmMigration, setConfirmMigration] = useState(false);
-  const [migrating, setMigrating] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [backupConfirmed, setBackupConfirmed] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [migrationMessage, setMigrationMessage] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const refresh = useCallback(async () => {
     setStatus("loading");
     setChecks(null);
@@ -50,29 +51,37 @@ export function CharacterAssetAudit() {
   async function inspectDestinations() {
     setInspectingDestinations(true);
     try { setDestinationChecks(await inspectMigrationDestinations(assets)); }
-    catch (cause) { setMigrationMessage(cause instanceof Error ? cause.message : "Destination audit failed."); }
+    catch (cause) { setResetMessage(cause instanceof Error ? cause.message : "Destination audit failed."); }
     finally { setInspectingDestinations(false); }
   }
-  const candidates = preview.filter(item => item.status === "candidate");
-  const ready = status === "ready" && !migrating && candidates.length > 0 && preview.length === 6 &&
-    !assets.some(asset => asset.schemaVersion === 3 && asset.characterId && asset.owner?.kind === "character") &&
-    preview.every(item => item.status === "candidate") &&
-    rows.every(row => row.total === 1 && row.missingMetadata === 0 && row.duplicatePaths === 0) &&
-    checks !== null && checks.length === 6 && checks.every(check => check.status === "verified") &&
-    destinationChecks !== null && destinationChecks.length === 6 && destinationChecks.every(check => check.status === "empty");
-  async function migrate() {
-    if (!ready) return;
-    setMigrating(true);
-    setMigrationMessage("");
+  const legacy = assets.filter(asset => asset.owner?.kind === "character" &&
+    (asset.owner.id === "character-mara-001" || asset.owner.id === "character-lily-001") &&
+    (asset.type === "identity-reference" || asset.type === "character-board" || asset.type === "full-body-reference") &&
+    asset.schemaVersion !== 3);
+  const canReset = !resetting && status === "ready" && backupConfirmed && legacy.length === 6 &&
+    rows.every(row => row.legacy === 1 && row.global === 0 && row.total === 1) &&
+    destinationChecks?.length === 6 && destinationChecks.every(item => item.status === "empty");
+  async function resetLegacyReferences() {
+    if (!canReset) return;
+    setResetting(true);
+    setResetMessage("");
+    setProgress({done:0,total:legacy.length});
+    let done = 0;
     try {
-      const result = await copyCharacterReferences(assets, (done, total) => setProgress({ done, total }));
-      setMigrationMessage(`${result.copied} verified copies registered. Original records and objects preserved. Refresh inventory to review global records.`);
-      setConfirmMigration(false);
+      for (const asset of legacy) {
+        if (asset.owner.kind !== "character") throw new Error("Invalid owner");
+        await deleteCreativeAsset(asset, asset.owner);
+        done++;
+        setProgress({done,total:legacy.length});
+      }
+      setResetMessage("Six legacy reference records deleted. Room 714 and its scenes were not touched. You may now upload new global character references.");
+      setConfirmReset(false);
       await refresh();
-    } catch (cause) {
-      setMigrationMessage(cause instanceof Error ? cause.message : "Migration interrupted; originals remain unchanged.");
-      setConfirmMigration(false);
-    } finally { setMigrating(false); }
+    } catch (error) {
+      setResetMessage(`Stopped after ${done} of ${legacy.length} references. Do not repeat blindly. ${error instanceof Error ? error.message : String(error)}`);
+      setConfirmReset(false);
+      await refresh();
+    } finally { setResetting(false); }
   }
   return <div className="studio">
     <div className="studio-head"><div><small>PRIVATE WORKSPACE / READ ONLY</small><h1>Character asset audit</h1></div><div className="head-meta"><UIButton onClick={() => void refresh()} disabled={status === "loading"}>Refresh inventory</UIButton></div></div>
@@ -96,30 +105,16 @@ export function CharacterAssetAudit() {
             </tr>)}</tbody>
           </table>
         </div>
-        <h2>F2.7 · Safe migration</h2>
-        <UIButton onClick={() => void inspectDestinations()} disabled={inspectingDestinations || migrating}>{inspectingDestinations ? "Checking destinations…" : "Inspect migration destinations"}</UIButton>
-        {destinationChecks && <UINotice tone={destinationChecks.every(item => item.status === "empty") ? "success" : "error"}>Destination audit: {destinationChecks.filter(item => item.status === "empty").length} empty · {destinationChecks.filter(item => item.status === "present").length} existing · {destinationChecks.filter(item => item.status === "unverified").length} unverified.</UINotice>}
-        {destinationChecks?.filter(item => item.status !== "empty").map(item => <UINotice key={item.assetId} tone="error">{item.assetId}: {item.status} · {item.detail}</UINotice>)}
-        <p>Copy-first migration requires exactly six valid legacy references and a fresh successful Storage check. Originals are never deleted.</p>
-        <UIButton variant="primary" disabled={!ready} onClick={() => setConfirmMigration(true)}>Review safe migration</UIButton>
-        {!ready && <UINotice>Migration locked: verify six sources, inspect all six destinations, and resolve any existing or unverified copies.</UINotice>}
-        {migrating && <UIProgress current={progress.done} total={progress.total} label="Copying and verifying references"/>}
-        {migrationMessage && <UINotice tone={migrationMessage.includes("verified copies") ? "success" : "error"}>{migrationMessage}</UINotice>}
-        <UIConfirmDialog open={confirmMigration} title="Copy six character references?" description="This creates verified copies and new Firestore records. Existing images and legacy records will remain untouched. Do not close this page during migration." confirmLabel="Copy and verify" busy={migrating} onCancel={() => setConfirmMigration(false)} onConfirm={() => void migrate()}/>
-        <h2>F2.6 · Migration dry run</h2>
-        <p>Preview only. No objects or metadata are changed. Destination existence is not checked unless already referenced by Firestore.</p>
-        <p>{preview.filter(item => item.status === "candidate").length} candidates · {preview.filter(item => item.status === "already-global").length} global · {preview.filter(item => item.status === "conflict").length} conflicts · {preview.filter(item => item.status === "invalid").length} invalid</p>
-        <div style={{overflowX:"auto"}}>
-          <table className="mm-audit-table">
-            <thead><tr><th>Character / slot</th><th>Source</th><th>Proposed destination</th><th>Status</th></tr></thead>
-            <tbody>{preview.map(item => <tr key={item.assetId}>
-              <td>{item.characterId} / {item.slot}</td>
-              <td style={{overflowWrap:"anywhere"}}>{item.sourcePath}</td>
-              <td style={{overflowWrap:"anywhere"}}>{item.destinationPath}</td>
-              <td>{item.status} · {item.reason}</td>
-            </tr>)}</tbody>
-          </table>
-        </div>
+        <h2>Character references · Fresh start</h2>
+        <UINotice>Room 714 / Arrival and its four shots are excluded. This cleanup only targets the six legacy Mara and Lily reference records. Back up your six original images before continuing.</UINotice>
+        <UIButton onClick={() => void inspectDestinations()} disabled={inspectingDestinations || resetting}>{inspectingDestinations ? "Checking destinations…" : "Inspect old migration destinations"}</UIButton>
+        {destinationChecks && <UINotice tone={destinationChecks.every(item => item.status === "empty") ? "success" : "error"}>Old migration destinations: {destinationChecks.filter(item => item.status === "empty").length} empty · {destinationChecks.filter(item => item.status === "present").length} existing · {destinationChecks.filter(item => item.status === "unverified").length} unverified. Any existing copy requires separate review.</UINotice>}
+        <label style={{display:"flex",alignItems:"center",gap:8,marginTop:12,fontSize:11}}><input type="checkbox" checked={backupConfirmed} onChange={event => setBackupConfirmed(event.target.checked)}/> I have saved all six original reference images outside Model Motion.</label>
+        <UIButton variant="secondary" disabled={!canReset} onClick={() => setConfirmReset(true)}>Remove six legacy references</UIButton>
+        {!canReset && <UINotice>Cleanup locked until all six legacy references are identified, originals are backed up, and all six migration destinations are confirmed empty. No project or scene will be deleted.</UINotice>}
+        {resetting && <UIProgress current={progress.done} total={progress.total} label="Removing legacy references"/>}
+        {resetMessage && <UINotice tone={resetMessage.startsWith("Six legacy") ? "success" : "error"}>{resetMessage}</UINotice>}
+        <UIConfirmDialog open={confirmReset} title="Delete six legacy reference files?" description="This permanently deletes six legacy Storage objects and their Firestore records. You confirmed that the original images are backed up. Room 714 / Arrival and its four shots are not affected." confirmLabel="Delete six legacy references" busy={resetting} onCancel={() => setConfirmReset(false)} onConfirm={() => void resetLegacyReferences()}/>
       </>}
     </div>
   </div>;
