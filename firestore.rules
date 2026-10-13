@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner() { return request.auth != null && request.auth.uid == 'muju7doq6xYWBToKNpMw6LKnbBw1'; }
+    function isOwner() { return request.auth != null && request.auth.uid == 'JZK1aIhqo5Zgl0oEbdCjhlko5qC3'; }
     match /{document=**} {
       allow read, write: if isOwner();
     }
