@@ -1,10 +1,10 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { initializeApp } from "firebase-admin/app";
+import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-initializeApp();
+if (!getApps().length) initializeApp();
 const runpodKey = defineSecret("RUNPOD_API_KEY");
 const falKey = defineSecret("FAL_KEY");
 const OWNER_UID = process.env.GENERATOR_OWNER_UID;
@@ -82,3 +82,6 @@ export const generatorGateway = onRequest({ secrets: [runpodKey, falKey], cors: 
     return fail(res,500,"Generator backend error");
   }
 });
+
+// R2 durable queue API; provider dispatch is intentionally disabled.
+export { queueGateway } from "./queue.js";
