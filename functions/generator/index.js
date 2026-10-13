@@ -41,6 +41,15 @@ export const generatorGateway = onRequest({ secrets: [runpodKey, falKey, sogniKe
   if (uid !== OWNER_UID) return fail(res,403,"Private generator access only");
   const action = (req.path || "").split("/").filter(Boolean).at(-1);
   try {
+    if (action === "sogni-check") {
+      // Read-only credential validation: never submits, quotes, or approves a paid workflow.
+      const response = await fetch("https://api.sogni.ai/v1/creative-agent/workflows?limit=1", {
+        headers: { Authorization: `Bearer ${sogniKey.value()}` }, signal: AbortSignal.timeout(12000),
+      });
+      if (response.status === 401 || response.status === 403) return fail(res, 502, "Sogni rejected the backend API credential");
+      if (!response.ok) return fail(res, 502, `Sogni read-only check failed (HTTP ${response.status})`);
+      return res.json({ provider: "sogni", authenticated: true, billingEnabled: false, dispatchEnabled: false });
+    }
     if (action === "generate") {
       // Fail closed: prototype bypasses the audited price reservation and privacy checks.
       // Retain legacy code temporarily for migration, but no direct provider submission is permitted.
