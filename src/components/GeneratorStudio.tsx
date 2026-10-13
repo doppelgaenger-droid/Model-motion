@@ -43,14 +43,9 @@ export function GeneratorStudio() {
     try { setAssets(await listCreativeAssets({ kind:"character", id:CHARACTERS[next].id, projectId:CHARACTERS[next].projectId })); }
     catch (err) { setNotice(err instanceof Error ? err.message : String(err)); }
   }
-  async function generate() {
-    setLoading(true); setNotice(""); setStatus(null);
-    try {
-      if (!prompt.trim()) throw new Error("Write a shot or reference description first.");
-      const result = await gateway("/generate", { characterId:identity.id, provider, prompt:prompt.trim(), negativePrompt:negative.trim(), referenceAssetId:reference || undefined, aspectRatio:"3:4" });
-      setStatus(result);
-    } catch (err) { setNotice(err instanceof Error ? err.message : String(err)); }
-    finally { setLoading(false); }
+  function generate() {
+    // Disabled until trusted budget and privacy authorization is enforced server-side.
+    setNotice("Direct generation is paused until the budget-enforced Generation Router is ready.");
   }
   async function refresh() {
     if (!status?.jobId) return;
@@ -61,7 +56,7 @@ export function GeneratorStudio() {
   }
   return <div className="studio" style={{padding:24}}>
     <div className="studio-head"><div><small>LIBRARY TOOLS / PRIVATE</small><h1>Generator Studio</h1></div><div className="head-meta"><span>API prototype</span><span>Integration candidate</span></div></div>
-    <p>Generate character reference studies using a remote provider. Canonical reference assets remain in the existing Character Library.</p>
+    <p>Remote generation is paused pending server-side cost, privacy and provider authorization. Existing canonical references remain available in the Character Library.</p>
     <div style={{display:"grid",gap:16,maxWidth:720}}>
       <label>Character<select value={character} onChange={e=>void load(e.target.value as Character)}><option value="mara">Mara</option><option value="lily">Lily</option></select></label>
       <label>Provider<select value={provider} onChange={e=>setProvider(e.target.value as Provider)}><option value="runpod">RunPod · custom endpoint</option><option value="fal">fal.ai · configured model</option></select></label>
@@ -69,7 +64,7 @@ export function GeneratorStudio() {
       <label>Identity reference<select value={reference} onChange={e=>setReference(e.target.value)}><option value="">No reference selected</option>{assets.filter(a=>a.type==="identity-reference"||a.type==="full-body-reference"||a.type==="character-board").map(a=><option value={a.id} key={a.id}>{a.type} · {a.name}</option>)}</select></label>
       <label>Image description<textarea rows={5} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Pose, camera, lighting, outfit, setting…" /></label>
       <label>Negative prompt<textarea rows={2} value={negative} onChange={e=>setNegative(e.target.value)} placeholder="Optional exclusions…" /></label>
-      <button className="primary-action" disabled={loading || !gatewayUrl} onClick={()=>void generate()}>{loading?"Working…":"Generate reference"}</button>
+      <button className="primary-action" disabled onClick={()=>void generate()}>{"Generation paused · budget router pending"}</button>
       {!gatewayUrl && <p role="status">Backend not connected. Configure VITE_GENERATOR_GATEWAY_URL to enable generation.</p>}
       {notice && <p role="alert">{notice}</p>}
       {status && <section aria-live="polite"><b>Job {status.jobId}</b><p>Status: {status.status}</p>{status.imageUrl && <img alt="Generated reference" src={status.imageUrl} style={{maxWidth:"100%",maxHeight:560,objectFit:"contain"}} />}{status.error && <p role="alert">{status.error}</p>}{(status.status==="queued"||status.status==="processing")&&<button disabled={loading} onClick={()=>void refresh()}>Refresh status</button>}</section>}

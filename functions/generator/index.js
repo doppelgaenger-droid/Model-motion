@@ -41,6 +41,9 @@ export const generatorGateway = onRequest({ secrets: [runpodKey, falKey], cors: 
   const action = (req.path || "").split("/").filter(Boolean).at(-1);
   try {
     if (action === "generate") {
+      // Fail closed: prototype bypasses the audited price reservation and privacy checks.
+      // Retain legacy code temporarily for migration, but no direct provider submission is permitted.
+      return fail(res, 503, "Direct generation disabled until budget-enforced router cutover");
       const { provider, characterId, referenceAssetId, prompt, negativePrompt, aspectRatio } = req.body || {};
       if (!["runpod","fal"].includes(provider) || !["character-mara-001","character-lily-001"].includes(characterId) || typeof prompt !== "string" || !prompt.trim() || prompt.length > 3000) return fail(res,400,"Invalid generation parameters");
       if (negativePrompt && (typeof negativePrompt !== "string" || negativePrompt.length > 2000)) return fail(res,400,"Invalid negative prompt");
