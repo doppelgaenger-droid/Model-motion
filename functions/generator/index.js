@@ -86,4 +86,3 @@ export const generatorGateway = onRequest({ secrets: [runpodKey, falKey], cors: 
   }
 });
 
-export { sogniCredentialCheck } from "./sogni-credential-check.js";

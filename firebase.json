@@ -12,6 +12,10 @@
     {
       "source": "functions/generator",
       "codebase": "generator"
+    },
+    {
+      "source": "functions/sogni-check",
+      "codebase": "sogni-check"
     }
   ]
 }
