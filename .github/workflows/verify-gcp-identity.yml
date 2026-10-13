@@ -1,0 +1,34 @@
+name: Verify Google Cloud Identity
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: firebase-production-rules
+    steps:
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+          token_format: access_token
+      - name: Verify selected project and identity (no resource changes)
+        env:
+          EXPECTED_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], encoding='utf-8') as fh:
+              config = json.load(fh)
+          assert config.get('type') == 'external_account'
+          assert config.get('service_account_impersonation_url', '').endswith(
+              '/serviceAccounts/' + os.environ['EXPECTED_SERVICE_ACCOUNT'] + ':generateAccessToken'
+          )
+          print('WIF credential configuration points to expected service account.')
+          PY
+          echo "Federated Google Cloud authentication succeeded; no Firebase resources were changed."
