@@ -7,6 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 initializeApp();
 const runpodKey = defineSecret("RUNPOD_API_KEY");
 const falKey = defineSecret("FAL_KEY");
+const sogniKey = defineSecret("SOGNI_API_KEY");
 const OWNER_UID = process.env.GENERATOR_OWNER_UID;
 const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
 const FAL_MODEL_PATH = process.env.FAL_MODEL_PATH;
@@ -20,7 +21,7 @@ function providerStatus(status) {
   if (status === "IN_PROGRESS" || status === "processing") return "processing";
   return "queued";
 }
-export const generatorGateway = onRequest({ secrets: [runpodKey, falKey], cors: false, timeoutSeconds: 60, maxInstances: 2 }, async (req, res) => {
+export const generatorGateway = onRequest({ secrets: [runpodKey, falKey, sogniKey], cors: false, timeoutSeconds: 60, maxInstances: 2 }, async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (ALLOWED_ORIGIN && req.headers.origin === ALLOWED_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
