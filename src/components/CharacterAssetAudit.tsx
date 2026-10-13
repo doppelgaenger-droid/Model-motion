@@ -1,3 +1,4 @@
+import { inspectMigrationDestinations, type DestinationCheck } from "../assets/destinationAudit";
 import { copyCharacterReferences } from "../assets/copyMigration";
 import { UIConfirmDialog, UIProgress, UINotice } from "../foundation/ui/feedback";
 import { UIButton } from "../foundation/ui/controls";
@@ -15,6 +16,8 @@ export function CharacterAssetAudit() {
   const [error, setError] = useState("");
   const [checks, setChecks] = useState<StorageCheck[] | null>(null);
   const [checking, setChecking] = useState(false);
+  const [destinationChecks, setDestinationChecks] = useState<DestinationCheck[] | null>(null);
+  const [inspectingDestinations, setInspectingDestinations] = useState(false);
   const [confirmMigration, setConfirmMigration] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -22,6 +25,7 @@ export function CharacterAssetAudit() {
   const refresh = useCallback(async () => {
     setStatus("loading");
     setChecks(null);
+    setDestinationChecks(null);
     try {
       const user = auth.currentUser;
       if (!user) throw new Error("Sign in to inspect your private asset records.");
@@ -43,12 +47,19 @@ export function CharacterAssetAudit() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Storage check failed"); }
     finally { setChecking(false); }
   }
+  async function inspectDestinations() {
+    setInspectingDestinations(true);
+    try { setDestinationChecks(await inspectMigrationDestinations(assets)); }
+    catch (cause) { setMigrationMessage(cause instanceof Error ? cause.message : "Destination audit failed."); }
+    finally { setInspectingDestinations(false); }
+  }
   const candidates = preview.filter(item => item.status === "candidate");
   const ready = status === "ready" && !migrating && candidates.length > 0 && preview.length === 6 &&
     !assets.some(asset => asset.schemaVersion === 3 && asset.characterId && asset.owner?.kind === "character") &&
     preview.every(item => item.status === "candidate") &&
     rows.every(row => row.total === 1 && row.missingMetadata === 0 && row.duplicatePaths === 0) &&
-    checks !== null && checks.length === 6 && checks.every(check => check.status === "verified");
+    checks !== null && checks.length === 6 && checks.every(check => check.status === "verified") &&
+    destinationChecks !== null && destinationChecks.length === 6 && destinationChecks.every(check => check.status === "empty");
   async function migrate() {
     if (!ready) return;
     setMigrating(true);
@@ -86,9 +97,12 @@ export function CharacterAssetAudit() {
           </table>
         </div>
         <h2>F2.7 · Safe migration</h2>
+        <UIButton onClick={() => void inspectDestinations()} disabled={inspectingDestinations || migrating}>{inspectingDestinations ? "Checking destinations…" : "Inspect migration destinations"}</UIButton>
+        {destinationChecks && <UINotice tone={destinationChecks.every(item => item.status === "empty") ? "success" : "error"}>Destination audit: {destinationChecks.filter(item => item.status === "empty").length} empty · {destinationChecks.filter(item => item.status === "present").length} existing · {destinationChecks.filter(item => item.status === "unverified").length} unverified.</UINotice>}
+        {destinationChecks?.filter(item => item.status !== "empty").map(item => <UINotice key={item.assetId} tone="error">{item.assetId}: {item.status} · {item.detail}</UINotice>)}
         <p>Copy-first migration requires exactly six valid legacy references and a fresh successful Storage check. Originals are never deleted.</p>
         <UIButton variant="primary" disabled={!ready} onClick={() => setConfirmMigration(true)}>Review safe migration</UIButton>
-        {!ready && <UINotice>Migration locked: verify all six Storage objects and ensure six candidate records with no conflicts.</UINotice>}
+        {!ready && <UINotice>Migration locked: verify six sources, inspect all six destinations, and resolve any existing or unverified copies.</UINotice>}
         {migrating && <UIProgress current={progress.done} total={progress.total} label="Copying and verifying references"/>}
         {migrationMessage && <UINotice tone={migrationMessage.includes("verified copies") ? "success" : "error"}>{migrationMessage}</UINotice>}
         <UIConfirmDialog open={confirmMigration} title="Copy six character references?" description="This creates verified copies and new Firestore records. Existing images and legacy records will remain untouched. Do not close this page during migration." confirmLabel="Copy and verify" busy={migrating} onCancel={() => setConfirmMigration(false)} onConfirm={() => void migrate()}/>
