@@ -2,7 +2,6 @@ import { inspectMigrationDestinations, type DestinationCheck } from "../assets/d
 import { deleteCreativeAsset } from "../assets/upload";
 import { UIConfirmDialog, UIProgress, UINotice } from "../foundation/ui/feedback";
 import { UIButton } from "../foundation/ui/controls";
-import { previewCharacterMigration } from "../assets/migrationPreview";
 import { verifyStorageObjects, type StorageCheck } from "../assets/verifyStorage";
 import { useCallback, useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -40,7 +39,6 @@ export function CharacterAssetAudit() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const rows = auditCharacterAssets(assets);
-  const preview = previewCharacterMigration(assets);
   const characterAssets = assets.filter(asset => asset.characterId?.startsWith("character-") || asset.owner?.kind === "character");
   async function verify() {
     setChecking(true);
