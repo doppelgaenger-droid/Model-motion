@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "model-motion"
+  },
+  "targets": {
+    "model-motion": {
+      "storage": {
+        "main": [
+          "model-motion.firebasestorage.app"
+        ]
+      }
+    }
+  }
+}
