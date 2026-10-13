@@ -4,10 +4,10 @@ This is **not a production cutover**. Do not merge/enable paid generation until 
 
 ## Project selection
 1. Select the **existing Firebase project** used by Model Motion. No new Firestore database or new Firebase project is needed.
-2. In a trusted terminal with access to that project, run `firebase login`, then `firebase use --add` or deploy using an explicit project ID. Never commit `.firebaserc` containing a guessed ID.
+2. In a trusted terminal with access to that project, run `firebase login`. The user-confirmed project ID is `model-motion` and is recorded in `.firebaserc`; still verify the selected account and project before deploying.
 3. `SOGNI_API_KEY` must exist in Google Secret Manager **in that same project**. The existing gateway has a `defineSecret("SOGNI_API_KEY")` binding.
 4. Existing gateway also binds `RUNPOD_API_KEY` and `FAL_KEY`; verify they exist before attempting deployment. Do not create placeholder secrets. Check `GENERATOR_OWNER_UID` and `GENERATOR_ALLOWED_ORIGIN` (owner-only checks fail closed if missing).
-5. From repository root: `npm install -g firebase-tools`, then `firebase deploy --only functions:generatorGateway --project <ACTUAL_FIREBASE_PROJECT_ID>` (the CLI might require `--only functions:generator:generatorGateway` with the configured codebase).
+5. From repository root: `npm install -g firebase-tools`, then `firebase deploy --only functions:generator:generatorGateway --project model-motion` (the CLI might require `--only functions:generator:generatorGateway` with the configured codebase).
 6. Read the deployed URL from Firebase Functions. The frontend Pages deployment is separate.
 
 ## Owner-only, read-only credential check
