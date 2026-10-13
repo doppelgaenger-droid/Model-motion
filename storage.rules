@@ -1,7 +1,7 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function isOwner() { return request.auth != null && request.auth.uid == 'muju7doq6xYWBToKNpMw6LKnbBw1'; }
+    function isOwner() { return request.auth != null && (request.auth.uid == 'JZK1aIhqo5Zgl0oEbdCjhlko5qC3' || request.auth.uid == 'muju7doq6xYWBToKNpMw6LKnbBw1'); }
     match /model-motion/{allPaths=**} {
       allow read: if isOwner();
       allow create, update: if isOwner()
