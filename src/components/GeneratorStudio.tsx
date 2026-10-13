@@ -43,16 +43,9 @@ export function GeneratorStudio() {
     try { setAssets(await listCreativeAssets({ kind:"character", id:CHARACTERS[next].id, projectId:CHARACTERS[next].projectId })); }
     catch (err) { setNotice(err instanceof Error ? err.message : String(err)); }
   }
-  async function generate() {
+  function generate() {
+    // Disabled until trusted budget and privacy authorization is enforced server-side.
     setNotice("Direct generation is paused until the budget-enforced Generation Router is ready.");
-    return;
-    setLoading(true); setNotice(""); setStatus(null);
-    try {
-      if (!prompt.trim()) throw new Error("Write a shot or reference description first.");
-      const result = await gateway("/generate", { characterId:identity.id, provider, prompt:prompt.trim(), negativePrompt:negative.trim(), referenceAssetId:reference || undefined, aspectRatio:"3:4" });
-      setStatus(result);
-    } catch (err) { setNotice(err instanceof Error ? err.message : String(err)); }
-    finally { setLoading(false); }
   }
   async function refresh() {
     if (!status?.jobId) return;
