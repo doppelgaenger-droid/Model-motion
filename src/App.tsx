@@ -1,5 +1,6 @@
 import { GeneratorStudio } from "./components/GeneratorStudio";
 import { usePrivateSceneCast } from "./scenes/privateCast";
+import { readPrivateSceneSnapshot, savePrivateSceneSnapshot, type PrivateSceneSnapshot } from "./scenes/privateSnapshot";
 import { UISelect } from "./foundation/ui/controls";
 import { CharacterAssetAudit } from "./components/CharacterAssetAudit";
 import { useEffect, useState } from "react";
@@ -28,6 +29,23 @@ function initialScene(): SceneId { return "room-714"; }
 export function App(){
   const [scene,setScene]=useState<SceneId>(initialScene);
   const [selected,setSelected]=useState<Selection>("shot-01");
+  const [snapshotNotice,setSnapshotNotice]=useState("");
+  const [snapshotBusy,setSnapshotBusy]=useState(false);
+  async function migrateSceneSnapshot() {
+    if (snapshotBusy) return;
+    setSnapshotBusy(true); setSnapshotNotice("");
+    try {
+      const baseline: PrivateSceneSnapshot = {
+        schemaVersion: 1, sceneId: scene, title: sceneCatalog[0].title, location: sceneCatalog[0].location,
+        shots: (Object.keys(shotData) as Array<keyof typeof shotData>).map(id => ({ id, title: shotData[id].title, duration: shotData[id].duration, action: shotData[id].action, status: shotData[id].status })),
+      };
+      const outcome = await savePrivateSceneSnapshot(baseline);
+      const stored = await readPrivateSceneSnapshot(scene);
+      if (!stored || stored.shots.length !== baseline.shots.length) throw new Error("Private snapshot verification failed.");
+      setSnapshotNotice(outcome === "created" ? "Private copy saved and verified. Original scene left unchanged." : "Private copy already exists. Nothing was overwritten.");
+    } catch (e) { setSnapshotNotice(e instanceof Error ? e.message : "Private backup failed."); }
+    finally { setSnapshotBusy(false); }
+  }
   const { cast: sceneCast, ready: castReady, saving: castSaving, error: castError, toggle: toggleCast } = usePrivateSceneCast(scene);
   useEffect(()=>{try{window.localStorage.setItem(SCENE_KEY,scene);}catch{/* Private browsing */}},[scene]);
   const switchScene=(next:SceneId)=>{setScene(next);setSelected("shot-01");};
@@ -44,6 +62,7 @@ export function App(){
     <aside className="navigator">
       <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>
       <div className="tree-section"><h3>CHARACTER LIBRARY <span>2</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001 · Global" onClick={()=>setSelected("mara")}/><NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002 · Global" onClick={()=>setSelected("lily")}/></div>
+      <div className="tree-section"><h3>PRIVATE SCENE BACKUP</h3><p className="muted">Copy Room 714 shot definitions to your private workspace. No existing data is overwritten or deleted.</p><button type="button" disabled={snapshotBusy} onClick={()=>void migrateSceneSnapshot()}>{snapshotBusy?"Checking private copy…":"Save private scene copy"}</button>{snapshotNotice && <p role="status">{snapshotNotice}</p>}</div>
       <div className="tree-section"><h3>SCENE CAST</h3><p className="muted">Private scene assignments · saved to your account.</p>{!castReady && <p role="status" className="muted">Loading private cast…</p>}{castError && <p role="alert">{castError}</p>}{castSaving && <p role="status" className="muted">Saving…</p>}{castOptions.map(character=><label key={character.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:12}}><input type="checkbox" disabled={!castReady || castSaving} checked={sceneCast.includes(character.id)} onChange={()=>void toggleCast(character.id)}/>{character.name}</label>)}</div>
       <div className="tree-section"><h3>LIBRARY TOOLS</h3><NavRow active={selected==="generator"} icon="✦" title="Generator Studio" meta="Remote API · Private" onClick={()=>setSelected("generator")}/><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
       {scene==="room-714"&&<><div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
