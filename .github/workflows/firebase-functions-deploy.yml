@@ -1,0 +1,39 @@
+name: Firebase Functions Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: 'Type model-motion to confirm target'
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: firebase-functions-model-motion
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify gateway and Sogni tests
+        run: |
+          node --check functions/generator/index.js
+          node --test functions/generator/sogni.test.js
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - name: Install function dependencies
+        working-directory: functions/generator
+        run: npm install --no-audit --no-fund
+      - name: Deploy read-only gateway
+        run: npx --yes firebase-tools@14 deploy --only functions:generator:generatorGateway --project model-motion --non-interactive
