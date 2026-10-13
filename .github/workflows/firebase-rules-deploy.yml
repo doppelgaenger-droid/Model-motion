@@ -41,7 +41,7 @@ jobs:
           project_id: model-motion
       - name: Verify Storage target configuration
         run: |
-          node -e 'const rc=require("./.firebaserc"); const c=require("./firebase.json"); if(rc.targets?.["model-motion"]?.storage?.main?.[0]!=="model-motion.firebasestorage.app" || c.storage?.[0]?.target!=="main") process.exit(1)'
+          node -e 'const fs=require("node:fs"); const rc=JSON.parse(fs.readFileSync(".firebaserc","utf8")); const c=require("./firebase.json"); if(rc.targets?.["model-motion"]?.storage?.main?.[0]!=="model-motion.firebasestorage.app" || c.storage?.[0]?.target!=="main") process.exit(1)'
       - name: Deploy selected rules only
         env:
           RULES_SCOPE: ${{ inputs.rules_scope }}
