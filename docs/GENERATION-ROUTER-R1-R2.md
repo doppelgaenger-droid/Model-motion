@@ -43,3 +43,14 @@ Existing prototype under `functions/generator` is image-oriented and not product
 - Privacy classifications cannot be downgraded by routing.
 - Invalid transitions reject; completed jobs cannot re-dispatch.
 - No background job creation occurs merely by opening the UI.
+
+## R2 incremental implementation (October 13, 2026)
+- `functions/generator/queue.js` exports an owner-only Cloud Functions v2 HTTP API, also exported by the existing function entrypoint.
+- `POST /create`: idempotent Firestore transaction, creates only a DRAFT job. Input IDs and reference privacy metadata are treated as untrusted until future server-side asset validation. The creation endpoint **does not send any media to a provider**.
+- `POST /budget`: updates per-job budget in integer US cents using optimistic revisions, always resets state to DRAFT for revalidation.
+- `POST /validate`: currently moves to `blocked_price_unknown` as a deliberate fail-closed placeholder. There is no trusted offer registry or provider dispatch yet.
+- `POST /status`: authenticated owner-only status retrieval.
+- `POST /cancel`: transactional cancellation of jobs that have not been sent to a provider.
+- Each endpoint verifies Firebase token, owner UID, origin and revision where applicable. Never trust browser-supplied price quotes.
+- The API is **not deployed or production verified**. Configure an explicit Firebase Functions source and authenticated environment before deployment; local and end-to-end tests remain required.
+- Unimplemented: provider-backed eligibility validation, authorized dispatch, lease-worker with provider reconciliation, server-side validation of referenced asset classifications, durable output ingestion, measured billing ledger and scheduler. These are required before paid generation.
