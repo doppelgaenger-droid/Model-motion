@@ -1,7 +1,6 @@
 import { GeneratorStudio } from "./components/GeneratorStudio";
 import { UISelect } from "./foundation/ui/controls";
 import { CharacterAssetAudit } from "./components/CharacterAssetAudit";
-import { ensureLilyProject } from "./projects/lily";
 import { useEffect, useState } from "react";
 import { AssetUpload } from "./components/AssetUpload";
 import { AssetGallery } from "./components/AssetGallery";
@@ -20,45 +19,35 @@ function NavRow({active,icon,title,meta,onClick}:{active:boolean;icon:string;tit
   return <button className={"nav-row "+(active?"active":"")} onClick={onClick}><span className="nav-icon">{icon}</span><span><b>{title}</b><small>{meta}</small></span></button>;
 }
 
-type ProjectId = "room-714" | "lily";
-const PROJECT_KEY = "model-motion:active-project";
-function initialProject(): ProjectId {
-  try {
-    const urlProject = new URLSearchParams(window.location.search).get("project");
-    if (urlProject === "lily" || urlProject === "room-714") return urlProject;
-    return window.localStorage.getItem(PROJECT_KEY) === "lily" ? "lily" : "room-714";
-  } catch { return "room-714"; }
-}
-
+type SceneId = "room-714";
+const SCENE_KEY = "model-motion:active-scene";
+const sceneCatalog = [{id:"room-714" as const, title:"Hotel Room · Arrival", location:"Room 714", shotCount:4}];
+const castOptions = [{id:"character-mara-001",name:"Mara"},{id:"character-lily-001",name:"Lily"}];
+function initialScene(): SceneId { return "room-714"; }
 export function App(){
-  const [project,setProject]=useState<ProjectId>(initialProject);
-  const [selected,setSelected]=useState<Selection>(()=>initialProject()==="lily"?"lily":"shot-01");
-  useEffect(()=>{
-    try {
-      window.localStorage.setItem(PROJECT_KEY,project);
-      const url = new URL(window.location.href);
-      url.searchParams.set("project",project);
-      window.history.replaceState(window.history.state,"",url.toString());
-    } catch { /* Storage may be blocked; the current selection still works. */ }
-  },[project]);
-  const [projectError,setProjectError]=useState("");
-  const switchProject=async (next:"room-714"|"lily")=>{if(next==="lily"){try{await ensureLilyProject();setProjectError("");}catch(e){setProjectError(e instanceof Error?e.message:String(e));return;}}setProject(next);setSelected(next==="lily"?"lily":"shot-01");};
-  const isShot=project==="room-714" && selected.startsWith("shot-");
+  const [scene,setScene]=useState<SceneId>(initialScene);
+  const [selected,setSelected]=useState<Selection>("shot-01");
+  const [sceneCast,setSceneCast]=useState<string[]>(["character-mara-001"]);
+  useEffect(()=>{try{window.localStorage.setItem(SCENE_KEY,scene);}catch{/* Private browsing */}},[scene]);
+  const switchScene=(next:SceneId)=>{setScene(next);setSelected("shot-01");};
+  const toggleCast=(id:string)=>setSceneCast(current=>current.includes(id)?current.filter(item=>item!==id):[...current,id]);
+  const isShot=scene==="room-714" && selected.startsWith("shot-");
   const shot=isShot?shotData[selected as keyof typeof shotData]:null;
 
   return <AuthGate><div className="workspace">
     <header className="appbar">
       <div className="wordmark">MODEL <b>MOTION</b></div>
-      <div className="project-switch"><UISelect aria-label="Active production (legacy)" value={project} onChange={e=>void switchProject(e.target.value as "room-714"|"lily")}><option value="room-714">Room 714 · Project 001</option><option value="lily">Legacy Lily workspace · 002</option></UISelect></div>
+      <div className="project-switch"><UISelect aria-label="Active scene" value={scene} onChange={e=>switchScene(e.target.value as SceneId)}>{sceneCatalog.map(item=><option key={item.id} value={item.id}>{item.title} · {item.location}</option>)}</UISelect></div>
       <div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
     </header>
 
     <aside className="navigator">
-      <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>{projectError&&<p role="alert">{projectError}</p>}
+      <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>
       <div className="tree-section"><h3>CHARACTER LIBRARY <span>2</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001 · Global" onClick={()=>setSelected("mara")}/><NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002 · Global" onClick={()=>setSelected("lily")}/></div>
+      <div className="tree-section"><h3>SCENE CAST</h3><p className="muted">Assign global characters to this scene.</p>{castOptions.map(character=><label key={character.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:12}}><input type="checkbox" checked={sceneCast.includes(character.id)} onChange={()=>toggleCast(character.id)}/>{character.name}</label>)}</div>
       <div className="tree-section"><h3>LIBRARY TOOLS</h3><NavRow active={selected==="generator"} icon="✦" title="Generator Studio" meta="Remote API · Private" onClick={()=>setSelected("generator")}/><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
       {project==="room-714"&&<><div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
-      <div className="tree-section scenes"><h3>SCENES <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
+      <div className="tree-section scenes"><h3>SCENE · HOTEL ROOM <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
         {(Object.keys(shotData) as Array<keyof typeof shotData>).map(k=><button key={k} className={"shot-nav "+(selected===k?"active":"")} onClick={()=>setSelected(k)}><span>{shotData[k].n}</span><b>{shotData[k].title}</b><small>{shotData[k].duration}</small></button>)}
       </div>
       <div className="nav-bottom"><button onClick={()=>setSelected("storyboard")}>＋ Storyboard</button></div></>}
@@ -71,7 +60,7 @@ export function App(){
       {selected==="lily" && <LilyStudio/>}
       {selected==="location" && <LocationStudio/>}
       {selected==="storyboard" && <StoryboardStudio/>}
-      {shot && <ShotStudio shot={shot}/>}
+      {shot && <ShotStudio shot={shot} cast={sceneCast.map(id=>castOptions.find(c=>c.id===id)?.name).filter((name):name is string=>Boolean(name))}/>}
     </main>
 
     <aside className="inspector">
@@ -89,10 +78,10 @@ export function App(){
   </div></AuthGate>
 }
 
-function ShotStudio({shot}:{shot:(typeof shotData)[keyof typeof shotData]}){return <div className="studio">
+function ShotStudio({shot,cast}:{shot:(typeof shotData)[keyof typeof shotData];cast:string[]}){return <div className="studio">
   <div className="studio-head"><div><small>SCENE 01 / SHOT {shot.n}</small><h1>{shot.title}</h1></div><div className="head-meta"><span>{shot.duration}</span><span>16:9</span><span>24 fps</span></div></div>
   <div className="canvas empty-canvas"><div className="empty-state"><div className="empty-symbol">□</div><h2>No generated take</h2><p>Generate a take to preview this shot. Approved media will become the visual reference for the next shot.</p><button className="primary-action">Generate first take</button></div><span className="canvas-tag">SHOT {shot.n}</span></div>
-  <div className="shot-summary"><div><label>ACTION</label><p>{shot.action}</p></div><div><label>CANONICAL INPUT</label><div className="state-pills"><span>Mara · v1.0</span><span>Black / 001</span><span>Door 714 · closed</span><span>Hands · empty</span></div></div></div>
+  <div className="shot-summary"><div><label>ACTION</label><p>{shot.action}</p></div><div><label>CANONICAL INPUT</label><div className="state-pills">{cast.map(name=><span key={name}>{name} · scene cast</span>)}<span>Black / 001</span><span>Door 714 · closed</span><span>Hands · empty</span></div></div></div>
 </div>}
 
 function useOwnerAssets(owner:AssetOwner){const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]); useEffect(()=>{let live=true; void listCreativeAssets(owner).then(items=>{if(live)setAssets(items)}).catch(error=>{if(live)console.error("Asset loading failed",error)}); return()=>{live=false}},[owner.kind,owner.id,owner.kind==="project"?owner.episodeId:owner.projectId]); return [assets,setAssets] as const;}
