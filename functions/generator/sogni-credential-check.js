@@ -9,7 +9,7 @@ const OWNER_UID = "JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
 const ALLOWED_ORIGIN = "https://doppelgaenger-droid.github.io";
 
 export const sogniCredentialCheck = onRequest(
-  { secrets: [sogniKey], cors: false, timeoutSeconds: 30, maxInstances: 1 },
+  { secrets: [sogniKey], serviceAccount: "model-motion-runtime@model-motion.iam.gserviceaccount.com", cors: false, timeoutSeconds: 30, maxInstances: 1 },
   async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
