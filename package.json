@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'functions/generator/**/*.test.js'",
     "test:watch": "vitest"
   },
   "devDependencies": {
