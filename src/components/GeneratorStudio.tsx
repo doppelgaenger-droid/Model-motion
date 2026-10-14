@@ -14,6 +14,7 @@ const CHARACTERS = {
 /** This URL points to a server-side gateway; never expose provider API keys in Vite. */
 const gatewayUrl = (import.meta.env.VITE_GENERATOR_GATEWAY_URL as string | undefined)?.replace(/\/$/, "");
 const sogniCheckEuUrl = "https://europe-west1-model-motion.cloudfunctions.net/sogniCredentialCheckEu";
+const coreEuUrl = "https://europe-west1-model-motion.cloudfunctions.net/modelMotionCoreEu";
 
 async function gateway(path: string, body: Record<string, unknown>): Promise<GenerationResult> {
   if (!gatewayUrl) throw new Error("Generator backend is not configured (VITE_GENERATOR_GATEWAY_URL).");
@@ -40,6 +41,8 @@ export function GeneratorStudio() {
   const [notice, setNotice] = useState("");
   const [sogniCheckBusy, setSogniCheckBusy] = useState(false);
   const [sogniCheckResult, setSogniCheckResult] = useState("");
+  const [draftTestBusy, setDraftTestBusy] = useState(false);
+  const [draftTestResult, setDraftTestResult] = useState("");
   const identity = CHARACTERS[character];
   async function load(next: Character) {
     setCharacter(next); setReference(""); setStatus(null); setNotice("");
@@ -75,6 +78,55 @@ export function GeneratorStudio() {
       setSogniCheckBusy(false);
     }
   }
+  async function testCoreDraft() {
+    if (draftTestBusy) return;
+    setDraftTestBusy(true);
+    setDraftTestResult("");
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Sign in to test the private Core API.");
+      const token = await user.getIdToken();
+      const idempotencyKey = "test_" + crypto.randomUUID();
+      const draft = {
+        provider: "artcraft",
+        characterId: identity.id,
+        requestedBudgetUsd: 0.5,
+        idempotencyKey,
+      };
+      const call = async (path: string, body: Record<string, unknown>) => {
+        const response = await fetch(coreEuUrl + path, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json() as {
+          created?: boolean; job?: { id: string; status: string; budgetCents: number };
+          generationEnabled?: boolean; paidDispatchEnabled?: boolean; error?: string;
+        };
+        if (!response.ok) throw new Error(`${path}: ${data.error || "HTTP " + response.status}`);
+        return data;
+      };
+      const first = await call("/jobs/draft", draft);
+      if (!first.created || first.job?.status !== "draft" || first.job.budgetCents !== 50 ||
+          first.generationEnabled !== false || first.paidDispatchEnabled !== false) {
+        throw new Error("Draft creation returned unexpected data.");
+      }
+      const second = await call("/jobs/draft", draft);
+      if (second.created !== false || second.job?.id !== first.job.id) {
+        throw new Error("Idempotent replay produced unexpected data.");
+      }
+      const stored = await call("/jobs/get", { jobId: first.job.id });
+      if (stored.job?.id !== first.job.id || stored.job.status !== "draft" ||
+          stored.generationEnabled !== false || stored.paidDispatchEnabled !== false) {
+        throw new Error("Persisted draft check failed.");
+      }
+      setDraftTestResult("EU Core test passed: one draft saved and retrieved, repeat request reused its ID. No generation or provider call. Draft ID: " + first.job.id);
+    } catch (error) {
+      setDraftTestResult(error instanceof Error ? error.message : "EU Core draft test failed.");
+    } finally {
+      setDraftTestBusy(false);
+    }
+  }
   function generate() {
     // Disabled until trusted budget and privacy authorization is enforced server-side.
     setNotice("Direct generation is paused until the budget-enforced Generation Router is ready.");
@@ -102,6 +154,12 @@ export function GeneratorStudio() {
         <p>Read-only API credential verification in Belgium. Does not generate images, videos, or paid jobs.</p>
         <button type="button" disabled={sogniCheckBusy} onClick={()=>void checkSogniCredentials()}>{sogniCheckBusy ? "Verifying…" : "Verify Sogni credentials · EU"}</button>
         {sogniCheckResult && <p role="status" aria-live="polite">{sogniCheckResult}</p>}
+      </section>
+      <section aria-label="EU Core draft persistence test" style={{border:"1px solid var(--border, #555)",padding:16,display:"grid",gap:8}}>
+        <strong>Model Motion Core · EU draft test</strong>
+        <p>Creates a single test draft in European Firestore, checks idempotency and reads it back. No reference upload, generation or paid API call.</p>
+        <button type="button" disabled={draftTestBusy} onClick={()=>void testCoreDraft()}>{draftTestBusy ? "Testing…" : "Test EU draft persistence"}</button>
+        {draftTestResult && <p role="status" aria-live="polite" style={{overflowWrap:"anywhere"}}>{draftTestResult}</p>}
       </section>
       {!gatewayUrl && <p role="status">Backend not connected. Configure VITE_GENERATOR_GATEWAY_URL to enable generation.</p>}
       {notice && <p role="alert">{notice}</p>}
