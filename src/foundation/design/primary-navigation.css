@@ -1,1 +1,10 @@
-.wordmark-link{border:0;background:none;color:inherit;cursor:pointer}.primary-navigation{display:flex;align-items:center;gap:4px;padding-left:18px;border-left:1px solid var(--mm-line)}.primary-navigation button{border:0;background:transparent;color:#999aa6;padding:10px 14px;border-radius:7px;font-size:12px}.primary-navigation button:hover,.primary-navigation button[aria-current=page]{background:#27272e;color:#f2f1f5}.appbar-actions button{font-size:12px}.workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator{display:none}.workspace:has(.models-dashboard),.workspace:has(.creative-studio){grid-template-rows:56px minmax(0,1fr)}.workspace:has(.models-dashboard) .content,.workspace:has(.creative-studio) .content{grid-row:2}@media(max-width:650px){.primary-navigation{gap:0;padding-left:5px}.primary-navigation button{padding:8px;font-size:11px}.appbar{gap:10px}.appbar-actions small,.foundation-dot{display:none}}
+/* UI.5: improve existing navigation without removing working controls. */
+.workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator{gap:12px;flex-wrap:wrap}
+.workspace:has(.models-dashboard) .navigator .tree-section:nth-child(2),.workspace:has(.creative-studio) .navigator .tree-section:nth-child(2){display:flex;gap:8px}
+.workspace:has(.models-dashboard) .navigator .nav-row,.workspace:has(.creative-studio) .navigator .nav-row{border-radius:9px;min-height:40px;padding:8px 14px;transition:background-color .16s ease}
+.workspace:has(.models-dashboard) .navigator .nav-row.active,.workspace:has(.creative-studio) .navigator .nav-row.active{border-color:#77739b;background:#252330}
+.workspace:has(.models-dashboard) .navigator .nav-row:focus-visible,.workspace:has(.creative-studio) .navigator .nav-row:focus-visible{outline:2px solid #aaa5ff;outline-offset:2px}
+.workspace:has(.takes) .navigator .tree-section{margin:16px 0}
+.workspace:has(.takes) .navigator .nav-row{border-radius:8px;min-height:40px}
+.workspace:has(.takes) .navigator .shot-nav{min-height:36px;border-radius:7px}
+@media(max-width:680px){.workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator{gap:5px}}
