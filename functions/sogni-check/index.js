@@ -8,7 +8,7 @@ const sogniKey = defineSecret("SOGNI_API_KEY");
 const OWNER_UID = "JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
 const ALLOWED_ORIGIN = "https://doppelgaenger-droid.github.io";
 
-export const sogniCredentialCheck = onRequest(
+export const sogniCredentialCheckEu = onRequest(
   { region: "europe-west1", secrets: [sogniKey], serviceAccount: "model-motion-runtime@model-motion.iam.gserviceaccount.com", cors: false, timeoutSeconds: 30, maxInstances: 1 },
   async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
