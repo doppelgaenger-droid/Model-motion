@@ -1,4 +1,5 @@
 import { GeneratorStudio } from "./components/GeneratorStudio";
+import { ModelsDashboard } from "./components/ModelsDashboard";
 import { usePrivateSceneCast } from "./scenes/privateCast";
 import { readPrivateSceneSnapshot, savePrivateSceneSnapshot, type PrivateSceneSnapshot } from "./scenes/privateSnapshot";
 import { UISelect } from "./foundation/ui/controls";
@@ -9,7 +10,7 @@ import { AssetGallery } from "./components/AssetGallery";
 import { listCreativeAssets, sortCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
 import { AuthGate } from "./components/AuthGate";
 
-type Selection = "generator" | "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
+type Selection = "models" | "settings" | "generator" | "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
   "shot-01": { n:"01", title:"Approach", duration:"6s", action:"Mara walks to room 714 and stops directly in front of the closed door.", status:"Ready" },
   "shot-02": { n:"02", title:"Turn", duration:"4s", action:"A male voice calls “Mara?” from behind. Mara stays in place and turns toward the corridor.", status:"Draft" },
@@ -28,7 +29,7 @@ const castOptions = [{id:"character-mara-001",name:"Mara"},{id:"character-lily-0
 function initialScene(): SceneId { return "room-714"; }
 export function App(){
   const [scene,setScene]=useState<SceneId>(initialScene);
-  const [selected,setSelected]=useState<Selection>("shot-01");
+  const [selected,setSelected]=useState<Selection>("models");
   const [snapshotNotice,setSnapshotNotice]=useState("");
   const [snapshotBusy,setSnapshotBusy]=useState(false);
   async function migrateSceneSnapshot() {
@@ -56,15 +57,16 @@ export function App(){
     <header className="appbar">
       <div className="wordmark">MODEL <b>MOTION</b></div>
       <div className="project-switch"><UISelect aria-label="Active scene" value={scene} onChange={e=>switchScene(e.target.value as SceneId)}>{sceneCatalog.map(item=><option key={item.id} value={item.id}>{item.title} · {item.location}</option>)}</UISelect></div>
-      <div className="appbar-actions"><button>Project settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
+      <div className="appbar-actions"><button onClick={()=>setSelected("settings")}>Settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
     </header>
 
     <aside className="navigator">
       <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>
+      <div className="tree-section"><h3>CREATE</h3><NavRow active={selected==="models"} icon="✦" title="Models" meta="Character dashboard" onClick={()=>setSelected("models")}/><NavRow active={selected==="generator"} icon="▶" title="Generator Studio" meta="Creative workspace" onClick={()=>setSelected("generator")}/></div>
       <div className="tree-section"><h3>CHARACTER LIBRARY <span>2</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001 · Global" onClick={()=>setSelected("mara")}/><NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002 · Global" onClick={()=>setSelected("lily")}/></div>
       <div className="tree-section"><h3>PRIVATE SCENE BACKUP</h3><p className="muted">Copy Room 714 shot definitions to your private workspace. No existing data is overwritten or deleted.</p><button type="button" disabled={snapshotBusy} onClick={()=>void migrateSceneSnapshot()}>{snapshotBusy?"Checking private copy…":"Save private scene copy"}</button>{snapshotNotice && <p role="status">{snapshotNotice}</p>}</div>
       <div className="tree-section"><h3>SCENE CAST</h3><p className="muted">Private scene assignments · saved to your account.</p>{!castReady && <p role="status" className="muted">Loading private cast…</p>}{castError && <p role="alert">{castError}</p>}{castSaving && <p role="status" className="muted">Saving…</p>}{castOptions.map(character=><label key={character.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:12}}><input type="checkbox" disabled={!castReady || castSaving} checked={sceneCast.includes(character.id)} onChange={()=>void toggleCast(character.id)}/>{character.name}</label>)}</div>
-      <div className="tree-section"><h3>LIBRARY TOOLS</h3><NavRow active={selected==="generator"} icon="✦" title="Generator Studio" meta="Remote API · Private" onClick={()=>setSelected("generator")}/><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
+      <div className="tree-section"><h3>WORKSPACE TOOLS</h3><NavRow active={selected==="settings"} icon="⚙" title="Settings" meta="Administration" onClick={()=>setSelected("settings")}/><NavRow active={selected==="audit"} icon="✓" title="Asset audit" meta="Private · Read-only" onClick={()=>setSelected("audit")}/></div>
       {scene==="room-714"&&<><div className="tree-section"><h3>LOCATIONS <span>1</span></h3><NavRow active={selected==="location"} icon="714" title="Hotel corridor" meta="Night · Interior" onClick={()=>setSelected("location")}/></div>
       <div className="tree-section scenes"><h3>SCENE · HOTEL ROOM <span>1</span></h3><div className="scene-label"><span>⌄</span><b>01</b><div><strong>Arrival</strong><small>4 shots · 22s</small></div></div>
         {(Object.keys(shotData) as Array<keyof typeof shotData>).map(k=><button key={k} className={"shot-nav "+(selected===k?"active":"")} onClick={()=>setSelected(k)}><span>{shotData[k].n}</span><b>{shotData[k].title}</b><small>{shotData[k].duration}</small></button>)}
@@ -73,6 +75,8 @@ export function App(){
     </aside>
 
     <main className="content">
+      {selected==="models" && <ModelsDashboard onOpen={id=>setSelected(id)} onCreate={()=>setSelected("generator")}/>}
+      {selected==="settings" && <SettingsOverview/>}
       {selected==="generator" && <GeneratorStudio/>}
       {selected==="audit" && <CharacterAssetAudit/>}
       {selected==="mara" && <CharacterStudio/>}
@@ -83,7 +87,7 @@ export function App(){
     </main>
 
     <aside className="inspector">
-      {selected==="generator"?<div className="inspector-head"><span>GENERATOR</span><b>API prototype</b></div>:selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
+      {selected==="models" || selected==="settings"?<div className="inspector-head"><span>PRIVATE WORKSPACE</span><b>Authenticated</b></div>:selected==="generator"?<div className="inspector-head"><span>GENERATOR</span><b>API prototype</b></div>:selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
     </aside>
 
     {shot && <section className="takes">
@@ -119,3 +123,5 @@ function Row({k,v}:{k:string;v:string}){return <div className="inspect-row"><spa
 
 function LilyStudio(){const owner:AssetOwner={kind:"character",id:"character-lily-001",projectId:"lily"};const [assets,setAssets]=useOwnerAssets(owner);return <div className="studio"><div className="studio-head"><div><small>CHARACTER LIBRARY / 002</small><h1>Lily</h1></div><div className="head-meta"><span>Canonical v1.0</span><span>Private</span></div></div><div className="asset-grid"><AssetGallery assets={assets} owner={owner} onDeleted={id=>setAssets(current=>current.filter(a=>a.id!==id))}/><AssetUpload owner={owner} type="identity-reference" existing={sortCreativeAssets(assets).find(item=>item.type==="identity-reference")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><AssetUpload owner={owner} type="character-board" existing={sortCreativeAssets(assets).find(item=>item.type==="character-board")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><AssetUpload owner={owner} type="full-body-reference" existing={sortCreativeAssets(assets).find(item=>item.type==="full-body-reference")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><div className="character-notes"><label>IDENTITY LOCK</label><h2>Lily · 24</h2><p>Blue/cyan short bob with bangs and pink highlights. Brown eyes. Gamer / streamer. Cyber · Cute · Neon.</p><div className="state-pills"><span>Face reference</span><span>Hair locked</span><span>Visual DNA v1.0</span></div></div></div></div>}
 function LilyInspector(){return <><div className="inspector-head"><span>CHARACTER INSPECTOR</span><b>Canonical</b></div><InspectorGroup title="IDENTITY"><Row k="Library ID" v="character-lily-001"/><Row k="Age" v="24"/><Row k="Version" v="1.0"/></InspectorGroup><InspectorGroup title="VISUAL DNA"><Row k="Hair" v="Blue/cyan bob"/><Row k="Eyes" v="Brown"/><Row k="Style" v="Cyber / Cute / Neon"/></InspectorGroup><InspectorGroup title="ASSETS"><p className="muted">Upload the original reference and character kit. Assets are stored privately in Firebase Storage with metadata in Firestore.</p></InspectorGroup></>}
+
+function SettingsOverview(){return <div className="models-dashboard"><div className="dashboard-eyebrow">WORKSPACE / ADMINISTRATION</div><div className="dashboard-heading"><div><h1>Settings</h1><p>Infrastructure and provider management, separate from creative work.</p></div></div><div className="settings-grid">{[["AI Providers","RunPod, fal.ai, Sogni and new providers"],["Infrastructure","Firebase, Cloud Functions and storage"],["Costs & Budgets","Server-enforced limits, estimates and usage"],["Generation Router","Queue, routing and dispatch safeguards"],["Privacy & Security","Authentication, references and permissions"],["Logs & Diagnostics","Connection checks and troubleshooting"]].map(([title,desc])=><section key={title} className="settings-card"><h2>{title}</h2><p>{desc}</p><small>Configuration workspace · integration pending</small></section>)}</div></div>}
