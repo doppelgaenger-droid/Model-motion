@@ -1,4 +1,5 @@
 import { GeneratorStudio } from "./components/GeneratorStudio";
+import { ProviderDiagnostics } from "./components/ProviderDiagnostics";
 import { ModelsDashboard } from "./components/ModelsDashboard";
 import { usePrivateSceneCast } from "./scenes/privateCast";
 import { readPrivateSceneSnapshot, savePrivateSceneSnapshot, type PrivateSceneSnapshot } from "./scenes/privateSnapshot";
@@ -29,6 +30,7 @@ const castOptions = [{id:"character-mara-001",name:"Mara"},{id:"character-lily-0
 function initialScene(): SceneId { return "room-714"; }
 export function App(){
   const [scene,setScene]=useState<SceneId>(initialScene);
+  const [studioCharacter,setStudioCharacter]=useState("character-mara-001");
   const [selected,setSelected]=useState<Selection>("models");
   const [snapshotNotice,setSnapshotNotice]=useState("");
   const [snapshotBusy,setSnapshotBusy]=useState(false);
@@ -75,9 +77,9 @@ export function App(){
     </aside>
 
     <main className="content">
-      {selected==="models" && <ModelsDashboard onOpen={id=>setSelected(id)} onCreate={()=>setSelected("generator")}/>}
+      {selected==="models" && <ModelsDashboard onOpen={id=>setSelected(id)} onCreate={id=>{setStudioCharacter(id==="lily"?"character-lily-001":"character-mara-001");setSelected("generator")}}/>}
       {selected==="settings" && <SettingsOverview/>}
-      {selected==="generator" && <GeneratorStudio/>}
+      {selected==="generator" && <GeneratorStudio initialCharacterId={studioCharacter}/>}
       {selected==="audit" && <CharacterAssetAudit/>}
       {selected==="mara" && <CharacterStudio/>}
       {selected==="lily" && <LilyStudio/>}
@@ -124,4 +126,4 @@ function Row({k,v}:{k:string;v:string}){return <div className="inspect-row"><spa
 function LilyStudio(){const owner:AssetOwner={kind:"character",id:"character-lily-001",projectId:"lily"};const [assets,setAssets]=useOwnerAssets(owner);return <div className="studio"><div className="studio-head"><div><small>CHARACTER LIBRARY / 002</small><h1>Lily</h1></div><div className="head-meta"><span>Canonical v1.0</span><span>Private</span></div></div><div className="asset-grid"><AssetGallery assets={assets} owner={owner} onDeleted={id=>setAssets(current=>current.filter(a=>a.id!==id))}/><AssetUpload owner={owner} type="identity-reference" existing={sortCreativeAssets(assets).find(item=>item.type==="identity-reference")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><AssetUpload owner={owner} type="character-board" existing={sortCreativeAssets(assets).find(item=>item.type==="character-board")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><AssetUpload owner={owner} type="full-body-reference" existing={sortCreativeAssets(assets).find(item=>item.type==="full-body-reference")} onUploaded={a=>setAssets(v=>[a,...v.filter(item=>item.type!==a.type)])}/><div className="character-notes"><label>IDENTITY LOCK</label><h2>Lily · 24</h2><p>Blue/cyan short bob with bangs and pink highlights. Brown eyes. Gamer / streamer. Cyber · Cute · Neon.</p><div className="state-pills"><span>Face reference</span><span>Hair locked</span><span>Visual DNA v1.0</span></div></div></div></div>}
 function LilyInspector(){return <><div className="inspector-head"><span>CHARACTER INSPECTOR</span><b>Canonical</b></div><InspectorGroup title="IDENTITY"><Row k="Library ID" v="character-lily-001"/><Row k="Age" v="24"/><Row k="Version" v="1.0"/></InspectorGroup><InspectorGroup title="VISUAL DNA"><Row k="Hair" v="Blue/cyan bob"/><Row k="Eyes" v="Brown"/><Row k="Style" v="Cyber / Cute / Neon"/></InspectorGroup><InspectorGroup title="ASSETS"><p className="muted">Upload the original reference and character kit. Assets are stored privately in Firebase Storage with metadata in Firestore.</p></InspectorGroup></>}
 
-function SettingsOverview(){return <div className="models-dashboard"><div className="dashboard-eyebrow">WORKSPACE / ADMINISTRATION</div><div className="dashboard-heading"><div><h1>Settings</h1><p>Infrastructure and provider management, separate from creative work.</p></div></div><div className="settings-grid">{[["AI Providers","RunPod, fal.ai, Sogni and new providers"],["Infrastructure","Firebase, Cloud Functions and storage"],["Costs & Budgets","Server-enforced limits, estimates and usage"],["Generation Router","Queue, routing and dispatch safeguards"],["Privacy & Security","Authentication, references and permissions"],["Logs & Diagnostics","Connection checks and troubleshooting"]].map(([title,desc])=><section key={title} className="settings-card"><h2>{title}</h2><p>{desc}</p><small>Configuration workspace · integration pending</small></section>)}</div></div>}
+function SettingsOverview(){return <div className="models-dashboard"><div className="dashboard-eyebrow">WORKSPACE / ADMINISTRATION</div><div className="dashboard-heading"><div><h1>Settings</h1><p>Infrastructure and provider management, separate from creative work.</p></div></div><ProviderDiagnostics/><div className="settings-grid">{[["AI Providers","RunPod, fal.ai, Sogni and new providers"],["Infrastructure","Firebase, Cloud Functions and storage"],["Costs & Budgets","Server-enforced limits, estimates and usage"],["Generation Router","Queue, routing and dispatch safeguards"],["Privacy & Security","Authentication, references and permissions"],["Logs & Diagnostics","Connection checks and troubleshooting"]].map(([title,desc])=><section key={title} className="settings-card"><h2>{title}</h2><p>{desc}</p><small>Configuration workspace · integration pending</small></section>)}</div></div>}
