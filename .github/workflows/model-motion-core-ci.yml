@@ -1,0 +1,32 @@
+name: Model Motion Core CI
+on:
+  pull_request:
+    paths:
+      - "functions/core/**"
+      - "firebase.json"
+      - ".github/workflows/model-motion-core-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "functions/core/**"
+      - "firebase.json"
+      - ".github/workflows/model-motion-core-ci.yml"
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Core JavaScript and registry
+        run: |
+          node --check functions/core/index.js
+          node --check functions/core/registry.js
+          node --test functions/core/registry.node-check.js
+      - name: Validate isolated Firebase codebase
+        run: |
+          node -e 'const f=require("./firebase.json");const c=f.functions.filter(x=>x.codebase==="core");if(c.length!==1||c[0].source!=="functions/core")process.exit(1)'
+          node -e 'const fs=require("node:fs");const s=fs.readFileSync("functions/core/index.js","utf8");if(!s.includes("europe-west1")||!s.includes("model-motion-core-runtime@model-motion.iam.gserviceaccount.com"))process.exit(1)'
