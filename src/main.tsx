@@ -1,1 +1,1 @@
-import React from "react";import{createRoot}from"react-dom/client";import{App}from"./App";import"./foundation/design/foundation.css";createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
+import React from "react";import{createRoot}from"react-dom/client";import{App}from"./App";import"./foundation/design/foundation.css";import"./foundation/design/fluid-workspace.css";createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
