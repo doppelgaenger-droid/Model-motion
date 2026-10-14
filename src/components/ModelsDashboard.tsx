@@ -63,7 +63,7 @@ export function ModelsDashboard({onOpen,onCreate}:{onOpen:(id:"mara"|"lily")=>vo
   <div className="dashboard-eyebrow">YOUR PRIVATE CREATIVE WORKSPACE <span> / CHARACTER LIBRARY</span></div>
   <div className="dashboard-heading"><div><h1>Cast & Characters<span className="dashboard-spark">✦</span></h1><p>Choose a character or create a new one.</p></div><button className="new-model-button" onClick={()=>setAdding(true)}>＋ New Model</button></div>
   {error&&!adding&&<p role="alert">{error}</p>}
-  <div className="model-grid">{models.map(model=><ModelCard key={model.key} model={model} onOpen={()=>model.key==="mara"||model.key==="lily"?onOpen(model.key):setActive(model)} onCreate={()=>model.key==="mara"||model.key==="lily"?onCreate(model.key):setActive(model)}/>)}</div>
+  <div className="model-grid">{models.map(model=><ModelCard key={model.key} model={model} onOpen={()=>setActive(model)} onCreate={()=>model.key==="mara"||model.key==="lily"?onCreate(model.key):setActive(model)}/>)}</div>
   <section className="dashboard-footnote"><span>PRIVATE BY DESIGN</span><p>{models.length} characters in your private workspace.</p></section>
   {adding&&<div className="new-model-overlay"><form className="new-model-dialog" role="dialog" aria-modal="true" aria-labelledby="new-model-title" onSubmit={e=>void add(e)}>
    <h2 id="new-model-title">New model</h2><label htmlFor="new-model-name">Name</label><input id="new-model-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/>
