@@ -4,7 +4,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
 if (!getApps().length) initializeApp();
-const sogniKey = defineSecret("SOGNI_API_KEY");
+const sogniKey = defineSecret("SOGNI_API_KEY_EU");
 const OWNER_UID = "JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
 const ALLOWED_ORIGIN = "https://doppelgaenger-droid.github.io";
 
