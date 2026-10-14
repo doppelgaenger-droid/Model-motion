@@ -1,3 +1,4 @@
+import "./ModelsDashboard.css";
 import { useEffect, useState } from "react";
 import { listCreativeAssets, type UploadedCreativeAsset } from "../assets/upload";
 import { createCustomModel, listCustomModels, type CustomModel } from "../models/registry";
