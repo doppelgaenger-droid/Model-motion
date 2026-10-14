@@ -8,7 +8,6 @@ const models = [
 
 function ModelCard({model,onOpen,onCreate}:{model:typeof models[number];onOpen:()=>void;onCreate:()=>void}) {
   const [assets,setAssets] = useState<UploadedCreativeAsset[]>([]);
-  const [preview,setPreview] = useState<string | null>(null);
   useEffect(()=>{
     let active=true;
     void listCreativeAssets({kind:"character",id:model.id,projectId:model.projectId})
