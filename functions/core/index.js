@@ -1,6 +1,8 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
+import { handleJobRequest } from "./jobs/api.js";
 import { publicRegistry } from "./registry.js";
 
 if (!getApps().length) initializeApp();
@@ -30,6 +32,15 @@ export const modelMotionCoreEu = onRequest({
     if (user.uid !== OWNER_UID) return res.status(403).json({error:"Private access only"});
   } catch {
     return res.status(401).json({error:"Authentication required"});
+  }
+  if (req.path.startsWith("/jobs/")) {
+    try {
+      const result = await handleJobRequest({path:req.path,body:req.body,ownerUid:OWNER_UID,db:getFirestore()});
+      return res.status(result.status).json(result.body);
+    } catch {
+      console.error("Core draft API request failed");
+      return res.status(500).json({error:"JOB_BACKEND_ERROR"});
+    }
   }
   if (req.path !== "/providers") return res.status(404).json({error:"Unknown route"});
   return res.status(200).json({
