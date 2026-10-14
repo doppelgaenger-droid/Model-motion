@@ -1,0 +1,4 @@
+/* Keep only primary creative navigation and Settings in the compact toolbar. */
+.workspace:has(.models-dashboard) .navigator .tree-section,.workspace:has(.creative-studio) .navigator .tree-section{display:none!important}
+.workspace:has(.models-dashboard) .navigator .tree-section:nth-child(2),.workspace:has(.creative-studio) .navigator .tree-section:nth-child(2),
+.workspace:has(.models-dashboard) .navigator .tree-section:nth-child(6),.workspace:has(.creative-studio) .navigator .tree-section:nth-child(6){display:flex!important}
