@@ -1,0 +1,32 @@
+/* UI.3: one natural page scroll for creative screens, no nested panes. */
+html:has(.workspace:has(.models-dashboard)),body:has(.workspace:has(.models-dashboard)),#root:has(.workspace:has(.models-dashboard)),
+html:has(.workspace:has(.creative-studio)),body:has(.workspace:has(.creative-studio)),#root:has(.workspace:has(.creative-studio)){height:auto;min-height:100%}
+.workspace:has(.models-dashboard),.workspace:has(.creative-studio){height:auto;min-height:100vh;overflow:visible;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:56px auto minmax(0,1fr)}
+.workspace:has(.models-dashboard) .appbar,.workspace:has(.creative-studio) .appbar{grid-column:1;grid-row:1;position:sticky;top:0;z-index:12}
+.workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator{grid-column:1;grid-row:2;position:sticky;top:56px;z-index:11;display:flex;align-items:center;gap:18px;min-height:60px;height:auto;padding:10px clamp(18px,4vw,64px);border-right:0;border-bottom:1px solid var(--mm-line);overflow:visible}
+.workspace:has(.models-dashboard) .nav-title,.workspace:has(.creative-studio) .nav-title,
+.workspace:has(.models-dashboard) .navigator .tree-section:not(:first-of-type):not(:nth-of-type(5)),
+.workspace:has(.creative-studio) .navigator .tree-section:not(:first-of-type):not(:nth-of-type(5)){display:none}
+.workspace:has(.models-dashboard) .navigator .tree-section,.workspace:has(.creative-studio) .navigator .tree-section{margin:0;display:flex;align-items:center;gap:8px}
+.workspace:has(.models-dashboard) .navigator .tree-section h3,.workspace:has(.creative-studio) .navigator .tree-section h3{display:none}
+.workspace:has(.models-dashboard) .nav-row,.workspace:has(.creative-studio) .nav-row{width:auto;min-height:36px;padding:5px 12px;gap:8px;border-radius:7px}
+.workspace:has(.models-dashboard) .nav-row b,.workspace:has(.creative-studio) .nav-row b{font-size:11px}
+.workspace:has(.models-dashboard) .nav-row small,.workspace:has(.creative-studio) .nav-row small{display:none}
+.workspace:has(.models-dashboard) .nav-icon,.workspace:has(.creative-studio) .nav-icon{width:24px;height:24px}
+.workspace:has(.models-dashboard) .nav-bottom,.workspace:has(.creative-studio) .nav-bottom{display:none}
+.workspace:has(.models-dashboard) .content,.workspace:has(.creative-studio) .content{grid-column:1;grid-row:3;min-width:0;min-height:65vh;height:auto;overflow:visible}
+.workspace:has(.models-dashboard) .inspector,.workspace:has(.creative-studio) .inspector,
+.workspace:has(.models-dashboard) .takes,.workspace:has(.creative-studio) .takes{display:none}
+.workspace:has(.models-dashboard) .project-switch,.workspace:has(.creative-studio) .project-switch{display:none}
+.workspace:has(.models-dashboard) .models-dashboard,.workspace:has(.creative-studio) .creative-studio{padding:clamp(24px,4vw,68px) clamp(22px,6vw,100px) 110px}
+.workspace:has(.models-dashboard) .model-grid{max-width:1420px;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:24px}
+.workspace:has(.models-dashboard) .model-cover{height:auto;aspect-ratio:4/4.2;min-height:280px}
+.workspace:has(.models-dashboard) .dashboard-heading{max-width:1420px}
+.workspace:has(.models-dashboard) .dashboard-footnote{max-width:1420px}
+.workspace:has(.models-dashboard) .settings-grid{max-width:1420px}
+@media(max-width:750px){
+ .workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator{position:sticky;top:56px;display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px}
+ .workspace:has(.models-dashboard) .navigator .tree-section,.workspace:has(.creative-studio) .navigator .tree-section{display:flex;flex-wrap:wrap}
+ .workspace:has(.models-dashboard) .navigator .nav-row,.workspace:has(.creative-studio) .navigator .nav-row{padding:6px 8px}
+ .workspace:has(.models-dashboard) .model-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+}
