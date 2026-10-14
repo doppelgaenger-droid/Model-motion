@@ -1,0 +1,28 @@
+/* UI.8: audit uses the same broad, single-scroll canvas as Models and Studio. */
+html:has(.workspace .mm-audit-table),body:has(.workspace .mm-audit-table),#root:has(.workspace .mm-audit-table){height:auto;min-height:100%}
+.workspace:has(.mm-audit-table){display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:56px auto minmax(0,1fr);height:auto;min-height:100vh;overflow:visible}
+.workspace:has(.mm-audit-table) .appbar{grid-column:1;grid-row:1;position:sticky;top:0;z-index:12}
+.workspace:has(.mm-audit-table) .navigator{grid-column:1;grid-row:2;position:sticky;top:56px;z-index:11;display:flex;height:auto;min-height:55px;overflow:visible;padding:8px clamp(18px,4vw,60px);border-right:0;border-bottom:1px solid var(--mm-line)}
+.workspace:has(.mm-audit-table) .navigator .nav-title,.workspace:has(.mm-audit-table) .navigator .tree-section{display:none}
+.workspace:has(.mm-audit-table) .navigator .tree-section:nth-child(2),.workspace:has(.mm-audit-table) .navigator .tree-section:nth-child(6),.workspace:has(.mm-audit-table) .navigator .tree-section.scenes{display:flex;gap:8px;margin:0;align-items:center}
+.workspace:has(.mm-audit-table) .navigator .tree-section h3,.workspace:has(.mm-audit-table) .navigator .tree-section.scenes .scene-label,.workspace:has(.mm-audit-table) .navigator .tree-section.scenes .shot-nav:not(:first-of-type),.workspace:has(.mm-audit-table) .navigator .nav-bottom{display:none}
+.workspace:has(.mm-audit-table) .navigator .nav-row{width:auto;padding:7px 12px;min-height:38px;border-radius:8px}
+.workspace:has(.mm-audit-table) .navigator .nav-row small{display:none}
+.workspace:has(.mm-audit-table) .navigator .tree-section.scenes .shot-nav:first-of-type{width:auto;padding:8px 12px;min-height:38px}
+.workspace:has(.mm-audit-table) .content{grid-column:1;grid-row:3;height:auto;min-height:70vh;overflow:visible}
+.workspace:has(.mm-audit-table) .content>.studio{min-height:0;max-width:1500px;margin:0 auto;padding:clamp(24px,4vw,60px) clamp(20px,5vw,85px) 100px}
+.workspace:has(.mm-audit-table) .inspector,.workspace:has(.mm-audit-table) .takes{display:none}
+.workspace:has(.mm-audit-table) .character-notes{min-width:0;max-width:none}
+.workspace:has(.mm-audit-table) .mm-audit-table{width:100%;border-collapse:collapse}
+.workspace:has(.mm-audit-table) .mm-audit-table th{text-align:left;font-size:11px;letter-spacing:.04em;color:#aaa5ff}
+.workspace:has(.mm-audit-table) .mm-audit-table th,.workspace:has(.mm-audit-table) .mm-audit-table td{padding:14px 12px;border-bottom:1px solid #383842}
+.workspace:has(.mm-audit-table) .character-notes h2{margin-top:32px}
+@media(max-width:730px){.workspace:has(.mm-audit-table) .navigator{position:static;flex-wrap:wrap}.workspace:has(.mm-audit-table) .navigator .tree-section{flex-wrap:wrap}.workspace:has(.mm-audit-table) .content>.studio{padding:26px 18px 80px}}
+/* Production retains controls and shot details but shares the cinematic visual language. */
+.workspace:has(.takes) .content>.studio{padding:clamp(22px,3vw,50px);background:#111216}
+.workspace:has(.takes) .content .studio-head h1{font-size:clamp(32px,4vw,48px);letter-spacing:-.04em}
+.workspace:has(.takes) .canvas{border-radius:12px;overflow:hidden;background:#1a1b22;border:1px solid #353640}
+.workspace:has(.takes) .shot-summary{border-top:1px solid #353640;margin-top:24px;padding-top:22px}
+.workspace:has(.takes) .inspector{background:#17181f}
+.workspace:has(.takes) .takes{background:#111216;border-top:1px solid #353640}
+.workspace:has(.takes) .take-empty{border-radius:10px}
