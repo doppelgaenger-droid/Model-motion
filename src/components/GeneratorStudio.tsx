@@ -13,6 +13,7 @@ const CHARACTERS = {
 
 /** This URL points to a server-side gateway; never expose provider API keys in Vite. */
 const gatewayUrl = (import.meta.env.VITE_GENERATOR_GATEWAY_URL as string | undefined)?.replace(/\/$/, "");
+const sogniCheckEuUrl = "https://europe-west1-model-motion.cloudfunctions.net/sogniCredentialCheckEu";
 
 async function gateway(path: string, body: Record<string, unknown>): Promise<GenerationResult> {
   if (!gatewayUrl) throw new Error("Generator backend is not configured (VITE_GENERATOR_GATEWAY_URL).");
@@ -37,11 +38,42 @@ export function GeneratorStudio() {
   const [status, setStatus] = useState<GenerationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [sogniCheckBusy, setSogniCheckBusy] = useState(false);
+  const [sogniCheckResult, setSogniCheckResult] = useState("");
   const identity = CHARACTERS[character];
   async function load(next: Character) {
     setCharacter(next); setReference(""); setStatus(null); setNotice("");
     try { setAssets(await listCreativeAssets({ kind:"character", id:CHARACTERS[next].id, projectId:CHARACTERS[next].projectId })); }
     catch (err) { setNotice(err instanceof Error ? err.message : String(err)); }
+  }
+  async function checkSogniCredentials() {
+    if (sogniCheckBusy) return;
+    setSogniCheckBusy(true);
+    setSogniCheckResult("");
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Please sign in to verify Sogni credentials.");
+      const token = await user.getIdToken();
+      const response = await fetch(sogniCheckEuUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "credential-check" }),
+      });
+      const data: { credentialAccepted?: boolean; generationEnabled?: boolean; paidDispatchEnabled?: boolean; providerHttpStatus?: number; error?: string } = await response.json();
+      if (!response.ok) {
+        const detail = data.providerHttpStatus ? ` (provider HTTP ${data.providerHttpStatus})` : "";
+        throw new Error(`${data.error || "Credential check failed"}${detail}. Check the EU Function logs if needed.`);
+      }
+      if (data.credentialAccepted === true && data.generationEnabled === false && data.paidDispatchEnabled === false) {
+        setSogniCheckResult("Sogni credentials accepted in Belgium (europe-west1). Generation remains disabled; no paid job was started.");
+      } else {
+        throw new Error("Unexpected credential-check response. No generation was requested.");
+      }
+    } catch (error) {
+      setSogniCheckResult(error instanceof Error ? error.message : "Credential check failed.");
+    } finally {
+      setSogniCheckBusy(false);
+    }
   }
   function generate() {
     // Disabled until trusted budget and privacy authorization is enforced server-side.
@@ -65,6 +97,12 @@ export function GeneratorStudio() {
       <label>Image description<textarea rows={5} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Pose, camera, lighting, outfit, setting…" /></label>
       <label>Negative prompt<textarea rows={2} value={negative} onChange={e=>setNegative(e.target.value)} placeholder="Optional exclusions…" /></label>
       <button className="primary-action" disabled onClick={()=>void generate()}>{"Generation paused · budget router pending"}</button>
+      <section aria-label="Sogni EU credential verification" style={{border:"1px solid var(--border, #555)",padding:16,display:"grid",gap:8}}>
+        <strong>Sogni · EU credential check</strong>
+        <p>Read-only API credential verification in Belgium. Does not generate images, videos, or paid jobs.</p>
+        <button type="button" disabled={sogniCheckBusy} onClick={()=>void checkSogniCredentials()}>{sogniCheckBusy ? "Verifying…" : "Verify Sogni credentials · EU"}</button>
+        {sogniCheckResult && <p role="status" aria-live="polite">{sogniCheckResult}</p>}
+      </section>
       {!gatewayUrl && <p role="status">Backend not connected. Configure VITE_GENERATOR_GATEWAY_URL to enable generation.</p>}
       {notice && <p role="alert">{notice}</p>}
       {status && <section aria-live="polite"><b>Job {status.jobId}</b><p>Status: {status.status}</p>{status.imageUrl && <img alt="Generated reference" src={status.imageUrl} style={{maxWidth:"100%",maxHeight:560,objectFit:"contain"}} />}{status.error && <p role="alert">{status.error}</p>}{(status.status==="queued"||status.status==="processing")&&<button disabled={loading} onClick={()=>void refresh()}>Refresh status</button>}</section>}
