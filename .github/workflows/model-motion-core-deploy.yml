@@ -1,0 +1,59 @@
+name: Model Motion Core EU Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: "Type model-motion to authorize Core EU deployment (no generations)"
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: model-motion-core-eu-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Core scope and closed-by-default behavior
+        run: |
+          set -euo pipefail
+          node --check functions/core/index.js
+          node --test functions/core/registry.node-check.js
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import { publicRegistry } from "./functions/core/registry.js";
+            const c=JSON.parse(fs.readFileSync("firebase.json","utf8"));
+            if(c.functions.filter(x=>x.codebase==="core"&&x.source==="functions/core").length!==1)process.exit(1);
+            const s=fs.readFileSync("functions/core/index.js","utf8");
+            if(!s.includes("region: \"europe-west1\"") ||
+               !s.includes("model-motion-core-runtime@model-motion.iam.gserviceaccount.com") ||
+               !s.includes("generationEnabled: false") ||
+               !s.includes("paidDispatchEnabled: false") ||
+               !s.includes("verifyIdToken(token, true)"))process.exit(1);
+            if(publicRegistry().some(p=>p.enabled || p.dispatchEnabled || p.referenceUploadsEnabled))process.exit(1);
+          '
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Read-only preflight for project and dedicated runtime
+        run: |
+          set -euo pipefail
+          gcloud projects describe model-motion --format='value(projectId)' | grep -Fx model-motion
+          gcloud iam service-accounts describe model-motion-core-runtime@model-motion.iam.gserviceaccount.com --project=model-motion --format='value(email)' | grep -Fx model-motion-core-runtime@model-motion.iam.gserviceaccount.com
+      - name: Install Core dependencies
+        working-directory: functions/core
+        run: npm install --no-audit --no-fund
+      - name: Deploy Model Motion Core EU only
+        run: npx --yes firebase-tools@14 deploy --only functions:core:modelMotionCoreEu --project model-motion --non-interactive
