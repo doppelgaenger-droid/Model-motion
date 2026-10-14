@@ -27,8 +27,14 @@ export const sogniCredentialCheckEu = onRequest(
     try {
       const user = await getAuth().verifyIdToken(token, true);
       if (user.uid !== OWNER_UID) return res.status(403).json({ error: "Private access only" });
-    } catch {
-      return res.status(401).json({ error: "Authentication required" });
+    } catch (error) {
+      const code = typeof error?.code === "string" ? error.code : "unknown";
+      const safeReason = code === "auth/id-token-expired" ? "token-expired"
+        : code === "auth/argument-error" || code === "auth/invalid-id-token" ? "invalid-token"
+        : code === "auth/user-disabled" || code === "auth/id-token-revoked" ? "token-revoked-or-disabled"
+        : "verification-failed";
+      console.warn("Sogni EU Firebase auth verification failed", { reason: safeReason, firebaseCode: code.startsWith("auth/") ? code : "non-auth-error" });
+      return res.status(401).json({ error: "Authentication required", reason: safeReason });
     }
     try {
       const response = await fetch("https://api.sogni.ai/v1/creative-agent/workflows?limit=1", {
