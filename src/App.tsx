@@ -57,9 +57,9 @@ export function App(){
 
   return <AuthGate><div className="workspace">
     <header className="appbar">
-      <div className="wordmark">MODEL <b>MOTION</b></div>
+      <button type="button" className="wordmark global-brand" onClick={()=>setSelected("models")} aria-label="Model Motion home">MODEL <b>MOTION</b></button><nav className="global-nav" aria-label="Primary navigation"><button type="button" aria-current={selected==="models"?"page":undefined} onClick={()=>setSelected("models")}>Models</button><button type="button" aria-current={selected==="generator"?"page":undefined} onClick={()=>setSelected("generator")}>Studio</button><button type="button" aria-current={isShot?"page":undefined} onClick={()=>setSelected("shot-01")}>Production</button><button type="button" aria-current={selected==="audit"?"page":undefined} onClick={()=>setSelected("audit")}>Asset Audit</button></nav>
       <div className="project-switch"><UISelect aria-label="Active scene" value={scene} onChange={e=>switchScene(e.target.value as SceneId)}>{sceneCatalog.map(item=><option key={item.id} value={item.id}>{item.title} · {item.location}</option>)}</UISelect></div>
-      <div className="appbar-actions"><button onClick={()=>setSelected("settings")}>Settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
+      <div className="appbar-actions"><button aria-current={selected==="settings"?"page":undefined} onClick={()=>setSelected("settings")}>Settings</button><span className="foundation-dot"/> <small>Foundation 1.0</small></div>
     </header>
 
     <aside className="navigator">
