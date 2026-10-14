@@ -1,0 +1,37 @@
+name: Sogni EU Cloud Read-only Preflight
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: "Type model-motion (read-only checks)"
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  preflight:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-functions
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate EU target and deployment scope
+        run: |
+          node --check functions/sogni-check/index.js
+          node -e 'const fs=require("fs");const s=fs.readFileSync("functions/sogni-check/index.js","utf8");if(!s.includes("region: \"europe-west1\"")||!s.includes("SOGNI_API_KEY_EU")||!s.includes("sogniCredentialCheckEu"))process.exit(1)'
+          node -e 'const fs=require("fs");const s=fs.readFileSync(".github/workflows/sogni-credential-deploy.yml","utf8");if(!s.includes("functions:sogni-check:sogniCredentialCheckEu")||s.includes("functions:artifacts:setpolicy"))process.exit(1)'
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Inspect EU Function and secret metadata (no values)
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud functions describe sogniCredentialCheckEu --gen2 --region europe-west1 --project model-motion --format='value(name)' >/dev/null
+          gcloud secrets describe SOGNI_API_KEY_EU --project model-motion --format='value(name)' >/dev/null
+          echo "Read-only EU function and secret metadata checks passed."
