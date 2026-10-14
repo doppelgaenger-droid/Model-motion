@@ -1,0 +1,22 @@
+/* UI.9: audit shell is stable before, during and after inventory loading. */
+html:has(.workspace .character-notes),body:has(.workspace .character-notes),#root:has(.workspace .character-notes){height:auto;min-height:100%}
+.workspace:has(.character-notes){display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:56px auto minmax(0,1fr);height:auto;min-height:100vh;overflow:visible}
+.workspace:has(.character-notes) .appbar{grid-column:1;grid-row:1;position:sticky;top:0;z-index:12}
+.workspace:has(.character-notes) .navigator{grid-column:1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:9px;position:sticky;top:56px;z-index:11;height:auto;min-height:60px;overflow:visible;padding:10px clamp(16px,4vw,60px);border-right:0;border-bottom:1px solid var(--mm-line)}
+.workspace:has(.character-notes) .navigator .nav-title,.workspace:has(.character-notes) .navigator .tree-section,.workspace:has(.character-notes) .navigator .nav-bottom{display:none}
+.workspace:has(.character-notes) .navigator .tree-section:nth-child(2),.workspace:has(.character-notes) .navigator .tree-section:nth-child(6),.workspace:has(.character-notes) .navigator .tree-section.scenes{display:flex;align-items:center;gap:8px;margin:0}
+.workspace:has(.character-notes) .navigator .tree-section h3,.workspace:has(.character-notes) .navigator .scene-label,.workspace:has(.character-notes) .navigator .shot-nav:not(:first-of-type){display:none}
+.workspace:has(.character-notes) .navigator .nav-row{width:auto;min-height:40px;padding:9px 13px;border-radius:8px}
+.workspace:has(.character-notes) .navigator .nav-row small{display:none}
+.workspace:has(.character-notes) .navigator .shot-nav:first-of-type{width:auto;min-height:40px;padding:8px 12px}
+.workspace:has(.character-notes) .content{grid-column:1;grid-row:3;overflow:visible;height:auto;min-height:70vh}
+.workspace:has(.character-notes) .inspector,.workspace:has(.character-notes) .takes{display:none}
+.workspace:has(.character-notes) .content>.studio{height:auto;min-height:0;max-width:1500px;margin:0 auto;padding:clamp(25px,4vw,60px) clamp(18px,5vw,85px) 100px}
+@media(max-width:730px){.workspace:has(.character-notes) .navigator{position:static}.workspace:has(.character-notes) .navigator .tree-section{flex-wrap:wrap}}
+/* Keep primary navigation accessible while browsing scenes on mobile. */
+@media(max-width:680px){
+ .workspace:has(.takes) .navigator .tree-section:nth-child(2),.workspace:has(.takes) .navigator .tree-section:nth-child(6){display:flex!important;flex-wrap:wrap;gap:6px;margin:4px 0}
+ .workspace:has(.takes) .navigator .tree-section:nth-child(2) h3,.workspace:has(.takes) .navigator .tree-section:nth-child(6) h3{display:none}
+ .workspace:has(.takes) .navigator .tree-section:nth-child(2) .nav-row,.workspace:has(.takes) .navigator .tree-section:nth-child(6) .nav-row{width:auto;min-height:38px;padding:7px 10px;border-radius:7px}
+ .workspace:has(.takes) .navigator .tree-section:nth-child(2) .nav-row small,.workspace:has(.takes) .navigator .tree-section:nth-child(6) .nav-row small{display:none}
+}
