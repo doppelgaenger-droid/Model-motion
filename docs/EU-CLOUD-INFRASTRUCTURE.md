@@ -9,10 +9,10 @@ Status: documented from the successful live Sogni EU credential check and reposi
 | Firestore default database | `eur3` (Belgium/Netherlands multi-region), confirmed in Cloud Console | Keep; no migration |
 | Firebase Storage asset bucket | `model-motion.firebasestorage.app`, `eu` multi-region, confirmed | Keep; protect character references |
 | Sogni HTTPS credential check | `sogniCredentialCheckEu`, `europe-west1` (Belgium); live authenticated read-only check passed | Keep; verify runtime identity and monitoring |
-| Legacy Sogni credential check | `sogniCredentialCheck`, `us-central1` (Iowa), previously created | Remove only after dependency/invocation audit |
-| Artifact Registry | `gcf-artifacts` in `europe-west1` and `us-central1` | Europe policy in Dry Run; US cleanup deferred |
-| Cloud Functions staging buckets | `gcf-v2-sources-*` and `gcf-v2-uploads-*` exist in `us-central1` | Do not manually delete without service dependency audit |
-| Secret Manager | `SOGNI_API_KEY` uses automatic replication | Plan EU-restricted replacement with safe cutover; location not EU-guaranteed |
+| Legacy Sogni credential check | `sogniCredentialCheck` in Iowa | **Deleted by project owner** after verifying EU use |
+| Artifact Registry | `gcf-artifacts` in `europe-west1`; Iowa repository deleted | EU cleanup policies still in Dry Run |
+| Legacy Cloud Functions staging buckets | Two `gcf-v2-*` buckets in `us-central1` | **Deleted by project owner** after legacy function retirement |
+| Secret Manager | `SOGNI_API_KEY_EU`, user-managed replication in `europe-west1` | Live EU credential test passed; original automatically replicated `SOGNI_API_KEY` was deleted by owner |
 | Firebase Auth | Google sign-in, owner-only verified endpoint | Keep auth checks and token revocation validation |
 | GitHub Pages | Frontend hosted at `doppelgaenger-droid.github.io/Model-motion` | Note: global platform; EU-only residency cannot be asserted for the entire frontend |
 
@@ -23,8 +23,10 @@ Status: documented from the successful live Sogni EU credential check and reposi
 - Project: `model-motion`, number `843468130335`.
 - GitHub deployment identity: `model-motion-github-deploy@model-motion.iam.gserviceaccount.com`; uses GitHub Actions Workload Identity Federation (no persistent Google credential in GitHub).
 - Runtime identity: `model-motion-runtime@model-motion.iam.gserviceaccount.com`, explicitly set on the European function.
-- Runtime: `roles/secretmanager.secretAccessor` scoped to `SOGNI_API_KEY`; `roles/firebaseauth.viewer` on the project required for `verifyIdToken(token, true)` revocation checks.
-- Deployment account currently has elevated Cloud Functions Admin and temporary Artifact Registry Administrator from deployment troubleshooting. It has also been granted project-level Service Account User: **review scope carefully**. Exact bindings, inherited roles, conditions and effective permissions must be audited before reducing them.
+- Runtime: `roles/secretmanager.secretAccessor` scoped to `SOGNI_API_KEY_EU`; `roles/firebaseauth.viewer` on the project required for `verifyIdToken(token, true)` revocation checks.
+- Project-level deployment identity roles (verified via console screenshots): Cloud Functions Admin, Cloud Storage for Firebase Viewer (beta), Firebase Rules Admin, Firebase Viewer, Service Usage Viewer. Temporary Artifact Registry Administrator and project-level Service Account User were removed by the owner. Firebase Viewer was restored after an accidental role removal.
+- Direct `roles/iam.serviceAccountUser` bindings for the deployer on `model-motion-runtime`, Compute Engine default service account and App Engine default service account were verified from individual service-account access views; the runtime `iam.serviceAccounts.actAs` Policy Troubleshooter check returned **allowed** after project-level role removal.
+- Successful `actAs` troubleshooting is **not** an end-to-end deployment test. Before further IAM reduction, run a non-destructive deployment preflight or a controlled new deployment and confirm CLI permissions.
 - Account for default Compute Engine service and legacy App Engine service account received extra `actAs` troubleshooting grants; assess whether needed for ongoing deployments.
 - Do **not** automatically revoke rights without testing a controlled deployment and rollback path.
 
@@ -44,10 +46,10 @@ Status: documented from the successful live Sogni EU credential check and reposi
 
 ## Controlled next phases (do not execute without explicit verification)
 
-1. **Secret residency:** Create a *new*, EU-restricted Secret Manager secret, safely populate it via the Cloud Console, grant runtime secret accessor on the new secret, update function to refer to the new name, deploy and verify, then revoke/destroy the old secret only after rollback considerations. Secret replica location cannot be assumed from function region.
+1. **Secret residency:** Completed for Sogni: `SOGNI_API_KEY_EU` in `europe-west1` verified through the live read-only Sogni credential check; original secret deleted by project owner. Recheck that new integrations also use regionally restricted secrets.
 2. **Artifact cleanup:** Inspect EU Dry Run outcomes and protect current deployed images. Only then activate retention in EU; keep IAM minimal. Review whether the Firebase CLI deploy command needs `--force` or separate non-blocking policy management; never weaken error handling silently.
-3. **US retirement:** Inventory legacy function callers, Cloud Run service, images and staging buckets; migrate traffic/links and monitor EU; remove US resources one at a time with backups and owner approval.
-4. **IAM reduction:** Export current effective IAM and audit log evidence, reduce broad project grants to resource-specific roles where feasible, validate WIF deployment and runtime verification after each reduction.
+3. **US retirement:** Previously identified legacy Sogni function, Iowa Artifact Registry repository and two technical Iowa staging buckets were deleted by project owner. Perform a final discovery audit before claiming that *all* project resources are EU-only.
+4. **IAM reduction:** Temporary project-wide Artifact Registry Admin and Service Account User were removed; targeted `actAs` check on EU runtime passed. Documented project roles remain; still verify full deployment end-to-end after the reduction and assess whether `actAs` on default Compute/App Engine service accounts is truly needed.
 5. **Provider integration:** Design and test Generation Router dry-run + budget control + EU Firebase Storage persistence independently from the successful credential check.
 
 ## Reuse for DOTZERO / DNS
