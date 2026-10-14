@@ -25,7 +25,7 @@ jobs:
         run: |
           node --check functions/core/index.js
           node --check functions/core/registry.js
-          node --test functions/core/registry.node-check.js functions/core/providers/artcraft.node-check.js functions/core/jobs/contracts.node-check.js
+          node --test functions/core/registry.node-check.js functions/core/providers/artcraft.node-check.js functions/core/jobs/contracts.node-check.js functions/core/jobs/firestore.node-check.js
       - name: Validate isolated Firebase codebase
         run: |
           node -e 'const f=require("./firebase.json");const c=f.functions.filter(x=>x.codebase==="core");if(c.length!==1||c[0].source!=="functions/core")process.exit(1)'
