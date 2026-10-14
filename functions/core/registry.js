@@ -1,7 +1,8 @@
+import { ARTCRAFT } from "./providers/artcraft.js";
 // Provider capabilities are declarations, not proof of account access or prices.
 export const PROVIDERS = Object.freeze({
   artcraft: Object.freeze({
-    id: "artcraft", state: "credential-pending", enabled: false,
+    id: ARTCRAFT.id, state: ARTCRAFT.credentialStatus, enabled: ARTCRAFT.enabled,
     dispatchEnabled: false, referenceUploadsEnabled: false,
     pricingVerified: false, modelsVerified: false
   }),
