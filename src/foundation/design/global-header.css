@@ -1,0 +1,15 @@
+/* UI.10 — single global navigation; retain production-specific scene controls. */
+.appbar{gap:clamp(12px,2vw,28px)}
+.global-brand{border:0;background:none;padding:0;white-space:nowrap;text-align:left}
+.global-nav{display:flex;align-items:center;gap:4px;min-width:0}
+.global-nav button{background:transparent;border:0;border-radius:7px;padding:10px 13px;color:#a9aab5;font-size:12px;white-space:nowrap}
+.global-nav button:hover,.global-nav button[aria-current="page"],.appbar-actions button[aria-current="page"]{background:#292631;color:#f4f1ff}
+.global-nav button:focus-visible,.global-brand:focus-visible{outline:2px solid #aaa5ff;outline-offset:2px}
+.workspace .appbar .project-switch{margin-left:auto}
+.workspace .appbar .appbar-actions{margin-left:auto}
+.workspace:has(.models-dashboard) .navigator,.workspace:has(.creative-studio) .navigator,.workspace:has(.character-notes) .navigator{display:none!important}
+.workspace:has(.models-dashboard),.workspace:has(.creative-studio),.workspace:has(.character-notes){grid-template-rows:56px minmax(0,1fr)!important}
+.workspace:has(.models-dashboard) .content,.workspace:has(.creative-studio) .content,.workspace:has(.character-notes) .content{grid-row:2!important}
+.workspace:has(.takes) .navigator .tree-section:nth-child(2),.workspace:has(.takes) .navigator .tree-section:nth-child(3),.workspace:has(.takes) .navigator .tree-section:nth-child(6){display:none!important}
+@media(max-width:900px){.workspace .appbar .project-switch{display:none}.global-nav button{padding:9px 8px}}
+@media(max-width:650px){.appbar{flex-wrap:wrap;height:auto;min-height:56px;padding:10px 14px;gap:10px}.global-nav{order:3;width:100%;overflow-x:auto;padding-top:3px;border-top:1px solid var(--mm-line)}.global-nav button{flex:none;padding:9px 11px}.appbar-actions small,.appbar-actions .foundation-dot{display:none}.workspace:has(.models-dashboard),.workspace:has(.creative-studio),.workspace:has(.character-notes){display:block!important}.workspace:has(.models-dashboard) .appbar,.workspace:has(.creative-studio) .appbar,.workspace:has(.character-notes) .appbar{position:sticky;top:0}.workspace:has(.takes) .appbar{position:sticky;top:0}}
