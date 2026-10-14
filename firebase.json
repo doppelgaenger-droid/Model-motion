@@ -16,6 +16,10 @@
     {
       "source": "functions/sogni-check",
       "codebase": "sogni-check"
+    },
+    {
+      "source": "functions/core",
+      "codebase": "core"
     }
   ]
 }
