@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
 
@@ -11,6 +11,8 @@ export type CreativeAssetType = "character-board" | "identity-reference" | "full
 export interface UploadedCreativeAsset {
   id: string;
   name: string;
+  displayName?: string;
+  description?: string;
   type: CreativeAssetType;
   owner: AssetOwner;
   projectId: string;
@@ -80,6 +82,21 @@ export async function listCreativeAssets(owner: AssetOwner): Promise<UploadedCre
       }
       return asset.projectId === owner.id && asset.owner?.kind === "project" && asset.owner.id === owner.id && asset.owner.episodeId === owner.episodeId;
     });
+}
+
+/** Update only user-owned asset labels; never rename Storage objects or alter ownership. */
+export async function updateCreativeAssetMetadata(asset:UploadedCreativeAsset, owner:AssetOwner, displayName:string, description:string):Promise<{displayName:string;description:string}> {
+ const user=auth.currentUser;
+ if(!user || asset.uploadedBy!==user.uid)throw new Error("Not authorized to edit this image.");
+ if(asset.owner?.kind!==owner.kind || asset.owner.id!==owner.id || (owner.kind==="project" && asset.projectId!==owner.id) || (owner.kind==="character" && asset.characterId!==owner.id && asset.projectId!==owner.projectId))throw new Error("Image ownership does not match the selected character.");
+ const title=displayName.trim(), note=description.trim();
+ if(!title || title.length>120)throw new Error("Title must be 1–120 characters.");
+ if(note.length>1000)throw new Error("Description must be at most 1000 characters.");
+ const document=doc(db,"creativeAssets",asset.id);
+ const snapshot=await getDoc(document);
+ if(!snapshot.exists() || snapshot.data().uploadedBy!==user.uid || snapshot.data().storagePath!==asset.storagePath)throw new Error("The image record could not be verified.");
+ await updateDoc(document,{displayName:title,description:note,updatedAt:serverTimestamp()});
+ return {displayName:title,description:note};
 }
 
 /** Delete only an asset belonging to the signed-in user and the active project. */
