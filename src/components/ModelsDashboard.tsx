@@ -3,6 +3,7 @@ import {readCharacterSelections,resolveCharacterAsset,type CharacterSelections} 
 import { useEffect, useState } from "react";
 import { listCreativeAssets, type UploadedCreativeAsset } from "../assets/upload";
 import { ExtraReferences } from "./ExtraReferences";
+import { LookComposer } from "./LookComposer";
 import { createCustomModel, listCustomModels, type CustomModel } from "../models/registry";
 import { AssetUpload } from "./AssetUpload";
 import { AssetGallery } from "./AssetGallery";
@@ -47,7 +48,7 @@ function CustomProfile({model,onBack,onCreate}:{model:Model;onBack:()=>void;onCr
  useEffect(()=>{let mounted=true;void readCharacterSelections(model.id).then(value=>{if(mounted)setSelections(value)}).catch(e=>{if(mounted)setError(String(e))});void listCreativeAssets(owner).then(items=>{if(mounted)setAssets(items)}).catch(e=>{if(mounted)setError(String(e))});return()=>{mounted=false}},[model.id,model.projectId]);
  return <div className="models-dashboard"><button className="model-back" onClick={onBack}>← All models</button><div className="dashboard-heading"><div><h1>{model.name}</h1><p>Private identity and character references</p></div><button className="new-model-button" type="button" onClick={()=>onCreate(model.id)}>Create with {model.name} ↗</button></div>
  {error&&<p role="alert">{error}</p>}<section className="shell-panel" style={{marginBottom:24}}><h2>Active selections</h2><p>Dashboard: {assets.find(a=>a.id===selections.dashboardAssetId)?.displayName||assets.find(a=>a.id===selections.dashboardAssetId)?.name||"Automatic identity fallback"}</p><p>Production look: {assets.find(a=>a.id===selections.defaultProductionAssetId)?.displayName||assets.find(a=>a.id===selections.defaultProductionAssetId)?.name||"Automatic identity fallback"}</p></section><div className="model-profile-assets"><h2 className="reference-section-title">Core references</h2><AssetGallery assets={assets.filter(a=>a.type!=="additional-reference")} owner={owner} selections={selections} onSelection={setSelections} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
- {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div><ExtraReferences owner={owner} selections={selections} onSelection={setSelections} assets={assets.filter(a=>a.type==="additional-reference")} onAdded={asset=>setAssets(a=>[asset,...a])} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/></div>;
+ {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div><ExtraReferences owner={owner} selections={selections} onSelection={setSelections} assets={assets.filter(a=>a.type==="additional-reference")} onAdded={asset=>setAssets(a=>[asset,...a])} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/><LookComposer owner={owner} characterName={model.name} assets={assets}/></div>;
 }
 export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}) {
  const [custom,setCustom]=useState<CustomModel[]>([]);
