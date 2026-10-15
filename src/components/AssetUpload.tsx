@@ -9,7 +9,7 @@ export function AssetUpload({ owner, type, onUploaded, existing }:{
   existing?: UploadedCreativeAsset;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const slot = { "identity-reference": ["01 · Identity Reference", "01_identity-reference"], "character-board": ["02 · Character Board", "02_character-board"], "full-body-reference": ["03 · Full-body Reference", "03_full-body-reference"], "storyboard": ["Storyboard", "storyboard"], "location-reference": ["Location Reference", "location-reference"] }[type];
+  const slot = { "identity-reference": ["01 · Identity Reference", "01_identity-reference"], "character-board": ["02 · Character Board", "02_character-board"], "full-body-reference": ["03 · Full-body Reference", "03_full-body-reference"], "storyboard": ["Storyboard", "storyboard"], "location-reference": ["Location Reference", "location-reference"], "additional-reference": ["Additional Reference", "additional-reference"] }[type];
   const character = owner.kind === "character" ? owner.id.replace(/^character-/, "").replace(/-\d+$/, "") : owner.id;
   const filename = `${character}_${slot[1]}.png`;
   const [busy, setBusy] = useState(false);
