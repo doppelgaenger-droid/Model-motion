@@ -13,6 +13,10 @@ export interface UploadedCreativeAsset {
   name: string;
   displayName?: string;
   description?: string;
+  mediaType?: "image" | "video";
+  sourceType?: "core" | "uploaded" | "generated";
+  generationPrompt?: string;
+  referenceAssetIds?: string[];
   type: CreativeAssetType;
   owner: AssetOwner;
   projectId: string;
@@ -51,7 +55,7 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
   let metadataWritten = false;
   try {
     const downloadUrl = await getDownloadURL(objectRef);
-    const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
+    const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, mediaType:"image", sourceType:owner.kind==="character"&&["identity-reference","character-board","full-body-reference"].includes(type)?"core":"uploaded", owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
     metadataWritten = true;
     const persisted = await getDoc(document);

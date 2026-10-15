@@ -1,4 +1,5 @@
 import "./ModelsDashboard.css";
+import {readCharacterSelections,resolveCharacterAsset,type CharacterSelections} from "../models/selections";
 import { useEffect, useState } from "react";
 import { listCreativeAssets, type UploadedCreativeAsset } from "../assets/upload";
 import { ExtraReferences } from "./ExtraReferences";
@@ -14,8 +15,10 @@ const builtIns = [
 type Model = {key:string;name:string;subtitle:string;id:string;projectId:string};
 function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate:()=>void}) {
   const [assets,setAssets] = useState<UploadedCreativeAsset[]>([]);
+  const [selected,setSelected]=useState<string|null>(null);
   useEffect(()=>{
     let active=true;
+    void readCharacterSelections(model.id).then(p=>{if(active)setSelected(p.dashboardAssetId)}).catch(()=>{});
     void listCreativeAssets({kind:"character",id:model.id,projectId:model.projectId})
       .then(items=>{if(active)setAssets(items)})
       .catch(()=>{if(active)setAssets([])});
@@ -23,7 +26,7 @@ function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate
   },[model.id,model.projectId]);
   // Asset metadata stays private; previews must use the existing authenticated asset component.
   // Avoid exposing storage object paths or synthesizing public URLs.
-  const cover = assets.find(a=>a.type==="identity-reference") || assets[0];
+  const cover = resolveCharacterAsset(assets,selected);
   return <article className="model-card">
     <button className="model-cover" type="button" onClick={onOpen} aria-label={"Open "+model.name}>
       {cover ? <img className="model-cover-image" src={cover.downloadUrl} alt={model.name+" portrait"}/> : <span className="model-monogram">{model.name[0]}</span>}
@@ -39,11 +42,12 @@ function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate
 function CustomProfile({model,onBack,onCreate}:{model:Model;onBack:()=>void;onCreate:(id:string)=>void}){
  const owner={kind:"character" as const,id:model.id,projectId:model.projectId};
  const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]);
+ const [selections,setSelections]=useState<CharacterSelections>({dashboardAssetId:null,defaultProductionAssetId:null});
  const [error,setError]=useState("");
- useEffect(()=>{let mounted=true;void listCreativeAssets(owner).then(items=>{if(mounted)setAssets(items)}).catch(e=>{if(mounted)setError(String(e))});return()=>{mounted=false}},[model.id,model.projectId]);
+ useEffect(()=>{let mounted=true;void readCharacterSelections(model.id).then(value=>{if(mounted)setSelections(value)}).catch(e=>{if(mounted)setError(String(e))});void listCreativeAssets(owner).then(items=>{if(mounted)setAssets(items)}).catch(e=>{if(mounted)setError(String(e))});return()=>{mounted=false}},[model.id,model.projectId]);
  return <div className="models-dashboard"><button className="model-back" onClick={onBack}>← All models</button><div className="dashboard-heading"><div><h1>{model.name}</h1><p>Private identity and character references</p></div><button className="new-model-button" type="button" onClick={()=>onCreate(model.id)}>Create with {model.name} ↗</button></div>
- {error&&<p role="alert">{error}</p>}<div className="model-profile-assets"><h2 className="reference-section-title">Core references</h2><AssetGallery assets={assets.filter(a=>a.type!=="additional-reference")} owner={owner} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
- {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div><ExtraReferences owner={owner} assets={assets.filter(a=>a.type==="additional-reference")} onAdded={asset=>setAssets(a=>[asset,...a])} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/></div>;
+ {error&&<p role="alert">{error}</p>}<section className="shell-panel" style={{marginBottom:24}}><h2>Active selections</h2><p>Dashboard: {assets.find(a=>a.id===selections.dashboardAssetId)?.displayName||assets.find(a=>a.id===selections.dashboardAssetId)?.name||"Automatic identity fallback"}</p><p>Production look: {assets.find(a=>a.id===selections.defaultProductionAssetId)?.displayName||assets.find(a=>a.id===selections.defaultProductionAssetId)?.name||"Automatic identity fallback"}</p></section><div className="model-profile-assets"><h2 className="reference-section-title">Core references</h2><AssetGallery assets={assets.filter(a=>a.type!=="additional-reference")} owner={owner} selections={selections} onSelection={setSelections} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
+ {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div><ExtraReferences owner={owner} selections={selections} onSelection={setSelections} assets={assets.filter(a=>a.type==="additional-reference")} onAdded={asset=>setAssets(a=>[asset,...a])} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/></div>;
 }
 export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}) {
  const [custom,setCustom]=useState<CustomModel[]>([]);

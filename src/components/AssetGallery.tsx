@@ -1,9 +1,10 @@
 import "./AssetMetadataEditor.css";
 import { useEffect, useState } from "react";
 import "./AssetGallery.css";
+import {setCharacterSelection,type CharacterSelections} from "../models/selections";
 import { deleteCreativeAsset, updateCreativeAssetMetadata, sortCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "../assets/upload";
 
-export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreativeAsset[];owner:AssetOwner;onDeleted:(id:string)=>void}) {
+export function AssetGallery({assets, owner, onDeleted, selections, onSelection}:{assets:UploadedCreativeAsset[];owner:AssetOwner;onDeleted:(id:string)=>void;selections?:CharacterSelections;onSelection?:(value:CharacterSelections)=>void}) {
   const [active,setActive]=useState<UploadedCreativeAsset|null>(null);
   const [zoom,setZoom]=useState(1);
   const [edits,setEdits]=useState<Record<string,{displayName:string;description:string}>>({});
@@ -11,6 +12,7 @@ export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreative
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
   const [saving,setSaving]=useState(false);
+  const [selecting,setSelecting]=useState<string|null>(null);
   const [deleting,setDeleting]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
   useEffect(()=>{
@@ -26,6 +28,7 @@ export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreative
     catch(e){setError(e instanceof Error?e.message:"Delete failed");}
     finally {setDeleting(null); }
   }
+  async function select(asset:UploadedCreativeAsset,role:keyof CharacterSelections){if(owner.kind!=="character")return;setSelecting(asset.id);setError(null);try{const next=await setCharacterSelection(owner,role,asset);onSelection?.(next)}catch(e){setError(e instanceof Error?e.message:"Selection failed")}finally{setSelecting(null)}}
   async function save(event:React.FormEvent){event.preventDefault();if(!editing||saving)return;setSaving(true);setError(null);try{const next=await updateCreativeAssetMetadata(editing,owner,title,description);setEdits(old=>({...old,[editing.id]:next}));setEditing(null)}catch(e){setError(e instanceof Error?e.message:"Save failed")}finally{setSaving(false)}}
   return <>
     {sortCreativeAssets(assets).map(asset=><div className="reference-preview mm-asset-card" key={asset.id}>
@@ -33,8 +36,10 @@ export function AssetGallery({assets, owner, onDeleted}:{assets:UploadedCreative
         <img src={asset.downloadUrl} alt={asset.name}/>
       </button>
       <small>{asset.type} · {edits[asset.id]?.displayName ?? asset.displayName ?? asset.name}</small>{(edits[asset.id]?.description ?? asset.description)&&<p className="mm-asset-description">{edits[asset.id]?.description ?? asset.description}</p>}
+      {owner.kind==="character"&&<div className="mm-asset-selections">{selections?.dashboardAssetId===asset.id&&<small>Dashboard selected</small>}{selections?.defaultProductionAssetId===asset.id&&<small>Production default</small>}</div>}
       <div className="mm-asset-toolbar">
         <button type="button" onClick={()=>{setActive(asset);setZoom(1)}} title="Enlarge image">⤢</button>
+        {owner.kind==="character"&&<><button type="button" disabled={selecting!==null} onClick={()=>void select(asset,"dashboardAssetId")}>Dashboard</button><button type="button" disabled={selecting!==null} onClick={()=>void select(asset,"defaultProductionAssetId")}>Production</button></>}
         <button type="button" title="Edit title and description" onClick={()=>{setEditing(asset);setTitle(edits[asset.id]?.displayName??asset.displayName??asset.name);setDescription(edits[asset.id]?.description??asset.description??"");setError(null)}}>Edit</button>
         <button type="button" disabled={deleting===asset.id} onClick={()=>void remove(asset)}>{deleting===asset.id?"…":"✕"}</button>
       </div>
