@@ -8,7 +8,7 @@ export async function listCustomModels():Promise<CustomModel[]> {
   const user=auth.currentUser;
   if (!user) throw new Error("Sign in to access your models.");
   const docs=await getDocs(query(collectionRef(),where("ownerUid","==",user.uid)));
-  return docs.docs.map(snapshot=>({id:snapshot.id,...snapshot.data()} as CustomModel))
+  return docs.docs.map(snapshot=>({id:snapshot.id,...snapshot.data(),projectId:"character-library"} as CustomModel))
     .filter(model=>model.ownerUid===user.uid && typeof model.name==="string")
     .sort((a,b)=>a.name.localeCompare(b.name));
 }
