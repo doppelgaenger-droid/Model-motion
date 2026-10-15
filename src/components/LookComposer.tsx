@@ -3,7 +3,7 @@ import {auth} from "../lib/firebase";
 import {createLookDraft,listLookDrafts,type IntegrityMode,type LookDraft} from "../models/lookDrafts";
 import type {AssetOwner,UploadedCreativeAsset} from "../assets/upload";
 import "./LookComposer.css";
-export function LookComposer({owner,characterName,assets}:{owner:Extract<AssetOwner,{kind:"character"}>;characterName:string;assets:UploadedCreativeAsset[]}){
+export function LookComposer({owner,characterName,assets,onGenerated}:{owner:Extract<AssetOwner,{kind:"character"}>;characterName:string;assets:UploadedCreativeAsset[];onGenerated?:()=>void}){
  const [prompt,setPrompt]=useState("");
  const [integrity,setIntegrity]=useState<IntegrityMode>("strict");
  const [provider,setProvider]=useState<"sogni"|"artcraft">("sogni");
@@ -15,10 +15,23 @@ export function LookComposer({owner,characterName,assets}:{owner:Extract<AssetOw
  const [error,setError]=useState("");
  const [message,setMessage]=useState("");
  const [preflight,setPreflight]=useState("");
+ const [jobs,setJobs]=useState<Record<string,string>>({});
  useEffect(()=>{let live=true;void listLookDrafts(owner.id).then(x=>{if(live)setDrafts(x)}).catch(e=>{if(live)setError(String(e))});return()=>{live=false}},[owner.id]);
  useEffect(()=>{setChosen(previous=>{const allowed=new Set(assets.map(a=>a.id));const remaining=previous.filter(id=>allowed.has(id));if(remaining.length)return remaining;return assets.filter(a=>["identity-reference","character-board","full-body-reference"].includes(a.type)).map(a=>a.id)})},[assets]);
  const selected=assets.filter(a=>chosen.includes(a.id));
  const instruction=[`Character: ${characterName}.`,`Character integrity: ${integrity}. Keep recognizable facial identity, proportions and distinguishing traits grounded in the supplied reference images; permit the requested changes of outfit, hairstyle, expression and setting. Do not replace the person's identity.`,`Look description: ${prompt.trim()}`,`Reference asset IDs: ${selected.map(a=>a.id).join(", ")}`].join("\n");
+ async function requestImage(draft:LookDraft,action:"start"|"status"){
+  if(action==="start"&&!window.confirm("Start one Sogni subscription-only image edit? No token fallback."))return;
+  setBusy(true);setError("");setMessage("");
+  try{
+   const token=await auth.currentUser?.getIdToken();if(!token)throw Error("Sign in first.");
+   const response=await fetch("https://europe-west1-model-motion.cloudfunctions.net/sogniCredentialCheckEu/looks/"+action,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({draftId:draft.id})});
+   const data=await response.json();if(!response.ok)throw Error(data.reason||data.error||"Sogni request failed");
+   setJobs(x=>({...x,[draft.id]:data.status}));
+   setMessage(data.status==="saved"?"Image saved in the character gallery.":"Job status: "+data.status);
+   if(data.status==="saved")onGenerated?.();
+  }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
+ }
  async function inspectPlan(draft:LookDraft){setBusy(true);setError("");setPreflight("");try{const token=await auth.currentUser?.getIdToken();if(!token)throw Error("Sign in first.");const response=await fetch("https://europe-west1-model-motion.cloudfunctions.net/modelMotionCoreEu/looks/sogni-plan",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({draftId:draft.id})});const result=await response.json();if(!response.ok)throw Error(result.error||"Plan not available");if(result.previewOnly!==true||result.dispatchReady!==false)throw Error("Unexpected server response");setPreflight("Sogni plan ready: "+result.referenceCount+" references, model "+result.model+", subscription only. No provider call or charge.")}catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}}
  async function checkDraft(draft:LookDraft){setBusy(true);setError("");setPreflight("");try{const token=await auth.currentUser?.getIdToken();if(!token)throw Error("Sign in first.");const response=await fetch("https://europe-west1-model-motion.cloudfunctions.net/modelMotionCoreEu/looks/preflight",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({draftId:draft.id})});const result=await response.json();if(!response.ok)throw Error(result.error||"Preflight unavailable");if(result.referenceValidation!=="passed"||result.dispatchReady!==false||result.paidDispatchEnabled!==false)throw Error("Unexpected backend readiness response");setPreflight("Server verified "+result.referenceCount+" private reference(s). Generation remains blocked: "+result.blockers.join(", "));}catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}}
  async function save(){setBusy(true);setError("");setMessage("");try{const next=await createLookDraft(owner,prompt,integrity,chosen,provider,provider==="sogni"?billing:"tokens",Number(budget));setDrafts(d=>[next,...d]);setMessage("Look draft saved privately. No generation job was submitted.")}catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}}
@@ -31,6 +44,6 @@ export function LookComposer({owner,characterName,assets}:{owner:Extract<AssetOw
  {!assets.length&&<p>Add character references before creating a look draft.</p>}
  <div className="look-actions"><button type="button" disabled={busy||prompt.trim().length<5||chosen.length===0} onClick={()=>void save()}>{busy?"Saving…":"Save look draft"}</button><button type="button" disabled={!prompt.trim()} onClick={()=>void navigator.clipboard.writeText(instruction).then(()=>setMessage("Prompt copied. Images must be provided to the image model separately.")).catch(()=>setError("Copy unavailable."))}>Copy prepared prompt</button><button type="button" disabled title="Requires verified image-generation provider and server-side budget/privacy checks">Generate images · unavailable</button></div>
  {message&&<p role="status">{message}</p>}{preflight&&<p role="status">{preflight}</p>}{error&&<p role="alert">{error}</p>}
- <details className="look-drafts"><summary>Saved look drafts ({drafts.length})</summary>{drafts.map(d=><div key={d.id}><b>{d.integrity} · {d.provider||"sogni"} · {d.billingMode||"subscription"}</b><p>{d.prompt}</p><small>{d.referenceAssetIds.length} references · Not generated</small>{(d.provider??"sogni")==="sogni"&&<button type="button" disabled={busy} onClick={()=>void inspectPlan(d)}>Validate Sogni edit plan</button>}<button type="button" disabled={busy} onClick={()=>void checkDraft(d)}>{busy?"Checking…":"Verify references on server"}</button></div>)}</details>
+ <details className="look-drafts"><summary>Saved look drafts ({drafts.length})</summary>{drafts.map(d=><div key={d.id}><b>{d.integrity} · {d.provider||"sogni"} · {d.billingMode||"subscription"}</b><p>{d.prompt}</p><small>{d.referenceAssetIds.length} references · {jobs[d.id]||"Not generated"}</small>{(d.provider??"sogni")==="sogni"&&(d.billingMode??"subscription")==="subscription"&&<><button type="button" disabled={busy} onClick={()=>void requestImage(d,"start")}>Generate with Sogni</button><button type="button" disabled={busy} onClick={()=>void requestImage(d,"status")}>Check status / Save image</button></>}{(d.provider??"sogni")==="sogni"&&<button type="button" disabled={busy} onClick={()=>void inspectPlan(d)}>Validate Sogni edit plan</button>}<button type="button" disabled={busy} onClick={()=>void checkDraft(d)}>{busy?"Checking…":"Verify references on server"}</button></div>)}</details>
  </section>
 }

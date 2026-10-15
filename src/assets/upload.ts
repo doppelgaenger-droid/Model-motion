@@ -6,7 +6,7 @@ export type AssetOwner =
   | { kind: "character"; id: string; projectId: string }
   | { kind: "project"; id: string; episodeId?: string };
 
-export type CreativeAssetType = "character-board" | "identity-reference" | "full-body-reference" | "storyboard" | "location-reference" | "additional-reference";
+export type CreativeAssetType = "character-board" | "identity-reference" | "full-body-reference" | "storyboard" | "location-reference" | "additional-reference" | "generated-look";
 
 export interface UploadedCreativeAsset {
   id: string;
@@ -129,6 +129,7 @@ const assetTypeOrder: Record<CreativeAssetType,number> = {
   "storyboard":3,
   "location-reference":4,
   "additional-reference":5,
+  "generated-look":6,
 };
 export function sortCreativeAssets(assets:UploadedCreativeAsset[]):UploadedCreativeAsset[] {
   return [...assets].sort((a,b)=>assetTypeOrder[a.type]-assetTypeOrder[b.type] || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
