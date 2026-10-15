@@ -4,6 +4,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { handleJobRequest } from "./jobs/api.js";
 import { publicRegistry } from "./registry.js";
+import { preflightCharacterLook } from "./jobs/lookPreflight.js";
 
 if (!getApps().length) initializeApp();
 const OWNER_UID = "JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
@@ -41,6 +42,10 @@ export const modelMotionCoreEu = onRequest({
       console.error("Core draft API request failed");
       return res.status(500).json({error:"JOB_BACKEND_ERROR"});
     }
+  }
+  if (req.path === "/looks/preflight") {
+    const result=await preflightCharacterLook(getFirestore(),OWNER_UID,req.body);
+    return res.status(result.status).json(result.body);
   }
   if (req.path !== "/providers") return res.status(404).json({error:"Unknown route"});
   return res.status(200).json({
