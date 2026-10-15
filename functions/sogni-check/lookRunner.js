@@ -17,6 +17,27 @@ async function refs(db,uid,d){
  if(images.some(x=>{const a=x.data();return a.uploadedBy!==uid||a.characterId!==d.characterId&&a.owner?.id!==d.characterId||typeof a.downloadUrl!=="string"||!a.downloadUrl.startsWith("https://firebasestorage.googleapis.com/")||!a.storagePath?.startsWith("model-motion/users/"+uid+"/")}))return null;
  return images.map(x=>x.data().downloadUrl);
 }
+
+async function inspectReference(url){
+ const parsed=new URL(url);
+ if(parsed.protocol!=="https:"||parsed.hostname!=="firebasestorage.googleapis.com"||parsed.port||!parsed.pathname.startsWith("/v0/b/model-motion.firebasestorage.app/o/"))return {ok:false,reason:"UNTRUSTED_REFERENCE_URL"};
+ try{
+  const response=await fetch(url,{method:"GET",headers:{Range:"bytes=0-31"},redirect:"error",signal:AbortSignal.timeout(7000)});
+  if(!response.ok){await response.body?.cancel();return {ok:false,reason:"REFERENCE_HTTP_ERROR",httpStatus:response.status}}
+  const contentType=(response.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();
+  const reader=response.body?.getReader();
+  if(!reader)return {ok:false,reason:"REFERENCE_EMPTY"};
+  const chunk=await reader.read();
+  await reader.cancel();
+  const b=chunk.value||new Uint8Array();
+  const png=b.length>=8&&b[0]===137&&b[1]===80&&b[2]===78&&b[3]===71&&b[4]===13&&b[5]===10&&b[6]===26&&b[7]===10;
+  const jpeg=b.length>=3&&b[0]===255&&b[1]===216&&b[2]===255;
+  const webp=b.length>=12&&String.fromCharCode(...b.slice(0,4))==="RIFF"&&String.fromCharCode(...b.slice(8,12))==="WEBP";
+  const matches=(png&&contentType==="image/png")||(jpeg&&contentType==="image/jpeg")||(webp&&contentType==="image/webp");
+  return {ok:matches,reason:matches?"OK":"INVALID_IMAGE_SIGNATURE_OR_TYPE",mimeType:contentType};
+ }catch(error){return {ok:false,reason:error?.name==="TimeoutError"?"REFERENCE_TIMEOUT":"REFERENCE_DOWNLOAD_FAILED"}}
+}
+
 function payload(d,urls){
  const instruction=d.integrity==="strict"?"Preserve the same recognizable face, bone structure, and identity from the supplied references.":d.integrity==="balanced"?"Keep the identity recognizable while changing the requested styling.":"Keep character identity recognizable while permitting creative styling.";
  return {input:{title:"Model Motion character look",steps:[{id:"image",toolName:"edit_image",arguments:{model:"krea-identity-edit",prompt:instruction+" "+d.prompt.trim(),sourceImageIndex:-1,...(urls.length>1?{referenceImageIndices:urls.slice(1).map((_,i)=>-(i+2))}:{})}}]},media_references:urls.map(url=>({kind:"image",url})),billing_mode:"subscription",token_type:"spark",confirm_cost:true,safe_content_filter:d.allowMatureContent===true?false:true,app_source:"model-motion"};
@@ -39,6 +60,15 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
  let stage="validate_request";
  try {
  if(!body||typeof body!=="object"||Array.isArray(body))return result(400,{error:"INVALID_REQUEST"});
+ if(path==="/looks/reference-preflight"){
+  const id=body.draftId;if(!safeId(id)||Object.keys(body).some(k=>k!=="draftId"))return result(400,{error:"INVALID_DRAFT_ID"});
+  stage="read_draft";const doc=await db.collection("characterLookDrafts").doc(id).get();
+  if(!doc.exists||doc.data()?.ownerUid!==uid)return result(404,{error:"DRAFT_NOT_FOUND"});
+  stage="read_references";const urls=await refs(db,uid,doc.data());
+  if(!urls)return result(422,{error:"INVALID_REFERENCES_OR_BILLING"});
+  stage="check_reference_urls";const images=await Promise.all(urls.map((url,index)=>inspectReference(url).then(check=>({index:index+1,...check}))));
+  return result(200,{status:images.every(i=>i.ok)?"passed":"failed",referenceCount:images.length,images,providerCalled:false,generationStarted:false});
+ }
  if(path==="/looks/start"){
   const id=body.draftId;if(!safeId(id)||Object.keys(body).some(k=>k!=="draftId"))return result(400,{error:"INVALID_DRAFT_ID"});
   stage="read_draft";
