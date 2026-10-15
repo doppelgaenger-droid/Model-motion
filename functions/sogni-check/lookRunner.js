@@ -51,7 +51,7 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
   const artifact=workflow.steps?.[0]?.artifacts?.[0];
   const link=artifact?.url;if(typeof link!=="string"||!link.startsWith("https://"))return result(502,{error:"ARTIFACT_UNAVAILABLE"});
   // Avoid requesting arbitrary endpoints: only provider-issued HTTPS artifact hosts are accepted.
-  const host=new URL(link).hostname;if(!/^(?:[a-z0-9-]+\.)*(?:sogni\.ai|sognistorage\.com|amazonaws\.com|cloudfront\.net)$/.test(host))return result(502,{error:"ARTIFACT_HOST_NOT_ALLOWED"});
+  const host=new URL(link).hostname;if(!/^(?:[a-z0-9-]+\.)*(?:sogni\.ai|sognistorage\.com|amazonaws\.com|cloudfront\.net|storage\.googleapis\.com)$/.test(host))return result(502,{error:"ARTIFACT_HOST_NOT_ALLOWED"});
   const img=await fetch(link,{signal:AbortSignal.timeout(20000),redirect:"error"});
   const mime=img.headers.get("content-type")?.split(";")[0]||"";
   if(!img.ok||!["image/jpeg","image/png","image/webp"].includes(mime)||Number(img.headers.get("content-length")||0)>25*1024*1024)return result(502,{error:"ARTIFACT_NOT_IMAGE"});
