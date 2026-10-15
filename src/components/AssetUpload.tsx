@@ -4,7 +4,7 @@ import { deleteCreativeAsset, uploadCreativeAsset, type AssetOwner, type Creativ
 
 export function AssetUpload({ owner, type, onUploaded, existing }:{
   owner: AssetOwner;
-  type: CreativeAssetType;
+  type: Exclude<CreativeAssetType,"generated-look">;
   onUploaded?: (asset: UploadedCreativeAsset) => void;
   existing?: UploadedCreativeAsset;
 }) {
