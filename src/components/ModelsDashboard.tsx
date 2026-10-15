@@ -35,16 +35,16 @@ function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate
 }
 
 
-function CustomProfile({model,onBack}:{model:Model;onBack:()=>void}){
+function CustomProfile({model,onBack,onCreate}:{model:Model;onBack:()=>void;onCreate:(id:string)=>void}){
  const owner={kind:"character" as const,id:model.id,projectId:model.projectId};
  const [assets,setAssets]=useState<UploadedCreativeAsset[]>([]);
  const [error,setError]=useState("");
  useEffect(()=>{let mounted=true;void listCreativeAssets(owner).then(items=>{if(mounted)setAssets(items)}).catch(e=>{if(mounted)setError(String(e))});return()=>{mounted=false}},[model.id,model.projectId]);
- return <div className="models-dashboard"><button className="model-back" onClick={onBack}>← All models</button><div className="dashboard-heading"><div><h1>{model.name}</h1><p>Private identity and character references</p></div></div>
+ return <div className="models-dashboard"><button className="model-back" onClick={onBack}>← All models</button><div className="dashboard-heading"><div><h1>{model.name}</h1><p>Private identity and character references</p></div><button className="new-model-button" type="button" onClick={()=>onCreate(model.id)}>Create with {model.name} ↗</button></div>
  {error&&<p role="alert">{error}</p>}<div className="model-profile-assets"><AssetGallery assets={assets} owner={owner} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
  {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div></div>;
 }
-export function ModelsDashboard({onOpen,onCreate}:{onOpen:(id:"mara"|"lily")=>void;onCreate:(id:"mara"|"lily")=>void}) {
+export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}) {
  const [custom,setCustom]=useState<CustomModel[]>([]);
  const [active,setActive]=useState<Model|null>(null);
  const [adding,setAdding]=useState(false);
@@ -58,12 +58,12 @@ export function ModelsDashboard({onOpen,onCreate}:{onOpen:(id:"mara"|"lily")=>vo
   const created=await createCustomModel(name,description);setCustom(current=>[...current,created]);setAdding(false);setName("");setDescription("");
   setActive({key:created.id,id:"character-"+created.id,name:created.name,subtitle:"Private character",projectId:created.projectId});
  }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}}
- if(active)return <CustomProfile model={active} onBack={()=>setActive(null)}/>;
+ if(active)return <CustomProfile model={active} onBack={()=>setActive(null)} onCreate={onCreate}/>;
  return <div className="models-dashboard">
   <div className="dashboard-eyebrow">YOUR PRIVATE CREATIVE WORKSPACE <span> / CHARACTER LIBRARY</span></div>
   <div className="dashboard-heading"><div><h1>Cast & Characters<span className="dashboard-spark">✦</span></h1><p>Choose a character or create a new one.</p></div><button className="new-model-button" onClick={()=>setAdding(true)}>＋ New Model</button></div>
   {error&&!adding&&<p role="alert">{error}</p>}
-  <div className="model-grid">{models.map(model=><ModelCard key={model.key} model={model} onOpen={()=>setActive(model)} onCreate={()=>model.key==="mara"||model.key==="lily"?onCreate(model.key):setActive(model)}/>)}</div>
+  <div className="model-grid">{models.map(model=><ModelCard key={model.key} model={model} onOpen={()=>setActive(model)} onCreate={()=>onCreate(model.id)}/>)}</div>
   <section className="dashboard-footnote"><span>PRIVATE BY DESIGN</span><p>{models.length} characters in your private workspace.</p></section>
   {adding&&<div className="new-model-overlay"><form className="new-model-dialog" role="dialog" aria-modal="true" aria-labelledby="new-model-title" onSubmit={e=>void add(e)}>
    <h2 id="new-model-title">New model</h2><label htmlFor="new-model-name">Name</label><input id="new-model-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/>
