@@ -1,6 +1,7 @@
 import "./ModelsDashboard.css";
 import { useEffect, useState } from "react";
 import { listCreativeAssets, type UploadedCreativeAsset } from "../assets/upload";
+import { ExtraReferences } from "./ExtraReferences";
 import { createCustomModel, listCustomModels, type CustomModel } from "../models/registry";
 import { AssetUpload } from "./AssetUpload";
 import { AssetGallery } from "./AssetGallery";
@@ -41,8 +42,8 @@ function CustomProfile({model,onBack,onCreate}:{model:Model;onBack:()=>void;onCr
  const [error,setError]=useState("");
  useEffect(()=>{let mounted=true;void listCreativeAssets(owner).then(items=>{if(mounted)setAssets(items)}).catch(e=>{if(mounted)setError(String(e))});return()=>{mounted=false}},[model.id,model.projectId]);
  return <div className="models-dashboard"><button className="model-back" onClick={onBack}>← All models</button><div className="dashboard-heading"><div><h1>{model.name}</h1><p>Private identity and character references</p></div><button className="new-model-button" type="button" onClick={()=>onCreate(model.id)}>Create with {model.name} ↗</button></div>
- {error&&<p role="alert">{error}</p>}<div className="model-profile-assets"><AssetGallery assets={assets} owner={owner} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
- {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div></div>;
+ {error&&<p role="alert">{error}</p>}<div className="model-profile-assets"><h2 className="reference-section-title">Core references</h2><AssetGallery assets={assets.filter(a=>a.type!=="additional-reference")} owner={owner} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/>
+ {(["identity-reference","character-board","full-body-reference"] as const).map(type=><AssetUpload key={type} type={type} owner={owner} existing={assets.find(a=>a.type===type)} onUploaded={asset=>setAssets(a=>[asset,...a.filter(x=>x.type!==asset.type)])}/>)}</div><ExtraReferences owner={owner} assets={assets.filter(a=>a.type==="additional-reference")} onAdded={asset=>setAssets(a=>[asset,...a])} onDeleted={id=>setAssets(a=>a.filter(x=>x.id!==id))}/></div>;
 }
 export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}) {
  const [custom,setCustom]=useState<CustomModel[]>([]);
