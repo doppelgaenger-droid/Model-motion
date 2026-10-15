@@ -39,7 +39,7 @@ export const sogniCredentialCheckEu = onRequest(
     }
     if (req.path === "/looks/start" || req.path === "/looks/status") {
       try {const output=await runLookAction({path:req.path,body:req.body,uid:OWNER_UID,key:sogniKey.value()});return res.status(output.status).json(output.body)}
-      catch (error) {console.error("Look runner failed", error);return res.status(500).json({error:"LOOK_RUNNER_FAILED",reason:error?.code==="permission-denied"?"FIRESTORE_PERMISSION_DENIED":error?.name==="TimeoutError"?"TIMEOUT":"INTERNAL_ERROR",detail:"Check Firebase function logs for the cause."})}
+      catch (error) {const code=String(error?.code||"");const stage=typeof error?.runnerStage==="string"?error.runnerStage:"unknown";const reason=code==="7"||code==="permission-denied"||code==="PERMISSION_DENIED"?"PERMISSION_DENIED":error?.name==="TimeoutError"?"TIMEOUT":error?.name==="AbortError"?"TIMEOUT":"INTERNAL_ERROR";console.error("Look runner failed",{stage,reason,code,message:error instanceof Error?error.message:"Unknown exception"});return res.status(500).json({error:"LOOK_RUNNER_FAILED",stage,reason,detail:"The Sogni runner failed during "+stage+". Check the Firebase function logs for details."})}
     }
     try {
       const response = await fetch("https://api.sogni.ai/v1/creative-agent/workflows?limit=1", {
