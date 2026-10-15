@@ -1,0 +1,43 @@
+name: Sogni Firestore Runtime IAM Repair
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: "Type model-motion to authorize IAM adjustment for the Sogni runtime"
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: model-motion-sogni-runtime-iam
+  cancel-in-progress: false
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-functions
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Verify project and Sogni runtime account
+        run: |
+          set -euo pipefail
+          test "$(gcloud config get-value project)" = model-motion
+          gcloud iam service-accounts describe model-motion-runtime@model-motion.iam.gserviceaccount.com --project=model-motion --format='value(email)' | grep -Fx model-motion-runtime@model-motion.iam.gserviceaccount.com
+          gcloud functions describe sogniCredentialCheckEu --gen2 --region=europe-west1 --project=model-motion --format='value(serviceConfig.serviceAccountEmail)' | grep -Fx model-motion-runtime@model-motion.iam.gserviceaccount.com
+      - name: Grant Firestore data access to dedicated runtime
+        run: |
+          set -euo pipefail
+          gcloud projects add-iam-policy-binding model-motion \
+            --member='serviceAccount:model-motion-runtime@model-motion.iam.gserviceaccount.com' \
+            --role='roles/datastore.user' \
+            --condition=None \
+            --quiet >/dev/null
+          gcloud projects get-iam-policy model-motion --flatten='bindings[].members' --filter='bindings.role=roles/datastore.user AND bindings.members=serviceAccount:model-motion-runtime@model-motion.iam.gserviceaccount.com' --format='value(bindings.role)' | grep -Fx roles/datastore.user
+          echo 'Sogni runtime Firestore data IAM role verified. No Firestore rules changed.'
