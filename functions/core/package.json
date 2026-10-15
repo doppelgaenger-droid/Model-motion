@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "node --test && node --test jobs/lookPreflight.nodecheck.js",
+    "test": "node --test && node --test jobs/lookPreflight.nodecheck.js providers/imageReadiness.nodecheck.js",
     "check": "node --check index.js"
   },
   "dependencies": {

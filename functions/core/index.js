@@ -4,6 +4,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { handleJobRequest } from "./jobs/api.js";
 import { publicRegistry } from "./registry.js";
+import {evaluateImageReadiness} from "./providers/imageReadiness.js";
 import { preflightCharacterLook } from "./jobs/lookPreflight.js";
 
 if (!getApps().length) initializeApp();
@@ -46,6 +47,10 @@ export const modelMotionCoreEu = onRequest({
   if (req.path === "/looks/preflight") {
     const result=await preflightCharacterLook(getFirestore(),OWNER_UID,req.body);
     return res.status(result.status).json(result.body);
+  }
+  if (req.path === "/looks/provider-readiness") {
+    const result=evaluateImageReadiness(req.body);
+    return res.status(200).json(result);
   }
   if (req.path !== "/providers") return res.status(404).json({error:"Unknown route"});
   return res.status(200).json({
