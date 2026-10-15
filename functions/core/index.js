@@ -6,6 +6,7 @@ import { handleJobRequest } from "./jobs/api.js";
 import { publicRegistry } from "./registry.js";
 import {evaluateImageReadiness} from "./providers/imageReadiness.js";
 import { preflightCharacterLook } from "./jobs/lookPreflight.js";
+import {inspectSogniLookPlan} from "./providers/sogniPlan.js";
 
 if (!getApps().length) initializeApp();
 const OWNER_UID = "JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
@@ -47,6 +48,10 @@ export const modelMotionCoreEu = onRequest({
   if (req.path === "/looks/preflight") {
     const result=await preflightCharacterLook(getFirestore(),OWNER_UID,req.body);
     return res.status(result.status).json(result.body);
+  }
+  if (req.path === "/looks/sogni-plan") {
+    try {const result=await inspectSogniLookPlan(getFirestore(),OWNER_UID,req.body);return res.status(result.status).json(result.body)}
+    catch {return res.status(500).json({error:"SOGNI_PLAN_ERROR"})}
   }
   if (req.path === "/looks/provider-readiness") {
     const result=evaluateImageReadiness(req.body);
