@@ -15,3 +15,5 @@
 .look-composer p[role="alert"]{color:#ff9baa;white-space:pre-wrap;overflow-wrap:anywhere}
 .look-composer p[role="status"]{color:#c6e1cb;overflow-wrap:anywhere}
 @media(max-width:570px){.look-composer .look-actions>button,.look-composer .look-drafts button{width:100%}}
+
+.look-composer .look-adult-optin{display:flex;align-items:flex-start;gap:11px;margin:16px 0;color:#dedbe5;font-size:12px;line-height:1.5;max-width:750px}.look-composer .look-adult-optin input{margin-top:2px;width:17px;height:17px;flex:none}
