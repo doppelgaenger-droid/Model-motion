@@ -39,7 +39,7 @@ export const sogniCredentialCheckEu = onRequest(
     }
     if (req.path === "/looks/start" || req.path === "/looks/status") {
       try {const output=await runLookAction({path:req.path,body:req.body,uid:OWNER_UID,key:sogniKey.value()});return res.status(output.status).json(output.body)}
-      catch {console.error("Look runner failed");return res.status(500).json({error:"LOOK_RUNNER_FAILED"})}
+      catch (error) {console.error("Look runner failed", error);return res.status(500).json({error:"LOOK_RUNNER_FAILED",reason:error?.code==="permission-denied"?"FIRESTORE_PERMISSION_DENIED":error?.name==="TimeoutError"?"TIMEOUT":"INTERNAL_ERROR",detail:"Check Firebase function logs for the cause."})}
     }
     try {
       const response = await fetch("https://api.sogni.ai/v1/creative-agent/workflows?limit=1", {
