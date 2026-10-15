@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import {runLookAction} from "./lookRunner.js";
 
 if (!getApps().length) initializeApp();
 const sogniKey = defineSecret("SOGNI_API_KEY_EU");
@@ -35,6 +36,10 @@ export const sogniCredentialCheckEu = onRequest(
         : "verification-failed";
       console.warn("Sogni EU Firebase auth verification failed", { reason: safeReason, firebaseCode: code.startsWith("auth/") ? code : "non-auth-error" });
       return res.status(401).json({ error: "Authentication required", reason: safeReason });
+    }
+    if (req.path === "/looks/start" || req.path === "/looks/status") {
+      try {const output=await runLookAction({path:req.path,body:req.body,uid:OWNER_UID,key:sogniKey.value()});return res.status(output.status).json(output.body)}
+      catch {console.error("Look runner failed");return res.status(500).json({error:"LOOK_RUNNER_FAILED"})}
     }
     try {
       const response = await fetch("https://api.sogni.ai/v1/creative-agent/workflows?limit=1", {
