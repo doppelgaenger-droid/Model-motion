@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AuthGate } from "./components/AuthGate";
+import { ProductionV2 } from "./components/ProductionV2";
 import { ModelsDashboard } from "./components/ModelsDashboard";
 import { GeneratorStudio } from "./components/GeneratorStudio";
 import { SettingsWorkspace } from "./components/SettingsWorkspace";
@@ -59,5 +60,5 @@ export function App(){
  const [characterId,setCharacterId]=useState("character-mara-001");
  const navigation:[View,string][]=[["models","Models"],["studio","Studio"],["production","Production"],["audit","Asset Audit"]];
  return <AuthGate><div className="app-shell"><header className="shell-header"><button className="shell-brand" onClick={()=>setView("models")}>MODEL <b>MOTION</b></button><nav aria-label="Primary navigation" className="shell-navigation">{navigation.map(([id,label])=><button key={id} aria-current={view===id?"page":undefined} onClick={()=>setView(id)}>{label}</button>)}</nav><button className="shell-settings" aria-current={view==="settings"?"page":undefined} onClick={()=>setView("settings")}>Settings</button></header>
- <main className="shell-main">{view==="models"&&<ModelsDashboard onCreate={id=>{setCharacterId(id);setView("studio")}}/>}{view==="studio"&&<GeneratorStudio initialCharacterId={characterId}/>}{view==="production"&&<Production/>}{view==="audit"&&<div className="shell-page"><CharacterAssetAudit/></div>}{view==="settings"&&<SettingsWorkspace/>}</main></div></AuthGate>;
+ <main className="shell-main">{view==="models"&&<ModelsDashboard onCreate={id=>{setCharacterId(id);setView("studio")}}/>}{view==="studio"&&<GeneratorStudio initialCharacterId={characterId}/>}{view==="production"&&<ProductionV2/>}{view==="audit"&&<div className="shell-page"><CharacterAssetAudit/></div>}{view==="settings"&&<SettingsWorkspace/>}</main></div></AuthGate>;
 }
