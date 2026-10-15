@@ -1,1 +1,17 @@
 .look-composer{margin:30px 0}.look-head{display:flex;justify-content:space-between;gap:18px;align-items:start}.look-head small,.look-head>span{font-size:11px;color:#aea7fa}.look-composer textarea,.look-composer select{width:100%;background:#121318;border:1px solid #51515c;color:#f1f0f6;border-radius:7px;padding:12px;font:inherit}.look-composer>label,.look-options label{display:grid;gap:8px;font-size:12px;margin:12px 0}.look-refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;margin:16px 0}.look-refs label{display:grid;gap:7px;border:1px solid #373841;border-radius:9px;padding:8px;font-size:11px;overflow-wrap:anywhere}.look-refs label.is-chosen{border-color:#aaa5ff;background:#292535}.look-refs img{width:100%;height:105px;object-fit:cover;border-radius:5px}.look-refs input{justify-self:start}.look-actions{display:flex;flex-wrap:wrap;gap:10px}.look-actions button{border:1px solid #777084;padding:10px 14px;border-radius:7px;background:#393345;color:#fff}.look-actions button:disabled{opacity:.5}.look-drafts{margin-top:23px}.look-drafts>div{padding:11px;border-bottom:1px solid #3b3a47}.look-drafts p{white-space:pre-wrap}@media(max-width:600px){.look-head{flex-direction:column}}
+/* Character Look Composer action hierarchy — isolated from legacy global button rules */
+.look-composer{min-width:0;overflow:visible}
+.look-composer .look-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.look-composer .look-actions>button,.look-composer .look-drafts button,.look-composer .look-confirm button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.35;text-align:center;cursor:pointer;opacity:1}
+.look-composer .look-actions>button:disabled,.look-composer .look-drafts button:disabled,.look-composer .look-confirm button:disabled{cursor:not-allowed;opacity:.5}
+.look-composer .look-actions>button:first-child,.look-composer .look-confirm button:first-child{background:#aaa5ff;color:#16131d;border-color:#aaa5ff;font-weight:700}
+.look-composer .look-info-note{font-size:12px;color:#c1bdcc;flex:1 1 240px}
+.look-composer .look-drafts>div{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:18px 0}
+.look-composer .look-drafts>div>b,.look-composer .look-drafts>div>p,.look-composer .look-drafts>div>small{flex-basis:100%;margin:0}
+.look-composer .look-drafts button{border:1px solid #777084;background:#393345;color:#fff;border-radius:7px;padding:10px 14px}
+.look-composer .look-confirm{border:1px solid #aaa5ff;border-radius:9px;background:#252333;padding:16px;margin:16px 0;max-width:740px}
+.look-composer .look-confirm>div{display:flex;gap:10px;flex-wrap:wrap}
+.look-composer .look-confirm button{border:1px solid #777084;background:#393345;color:#fff;padding:10px 16px;border-radius:7px}
+.look-composer p[role="alert"]{color:#ff9baa;white-space:pre-wrap;overflow-wrap:anywhere}
+.look-composer p[role="status"]{color:#c6e1cb;overflow-wrap:anywhere}
+@media(max-width:570px){.look-composer .look-actions>button,.look-composer .look-drafts button{width:100%}}
