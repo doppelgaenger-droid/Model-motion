@@ -35,6 +35,9 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
   if (!file.type.startsWith("image/")) throw new Error("Only image assets are supported in this first upload flow.");
   if (file.size >= 25 * 1024 * 1024) throw new Error("Images must be smaller than 25 MB.");
 
+  if (owner.kind === "character" && (!owner.projectId || typeof owner.projectId !== "string")) {
+    throw new Error("Character project ID is missing. Reload the Models page and try again.");
+  }
   const projectId = projectIdFor(owner);
   const episode = owner.kind === "project" && owner.episodeId ? `/episodes/${owner.episodeId}` : "";
   const storagePath = owner.kind === "character"
