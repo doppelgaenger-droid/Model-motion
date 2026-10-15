@@ -1,0 +1,4 @@
+import test from "node:test";import assert from "node:assert/strict";import {buildSogniLookPlan,enforceSogniNoDispatch} from "./sogniEdit.js";
+test("subscription image edits use reference indices and no-cost-confirmation mode",()=>{const x=buildSogniLookPlan({prompt:"New hairstyle and outfit",integrity:"strict",referenceUrls:["https://example.com/a.jpg","https://example.com/b.jpg"]});assert.equal(x.billing_mode,"subscription");assert.equal(x.confirm_cost,false);assert.equal(x.input.steps[0].toolName,"edit_image");assert.deepEqual(x.input.steps[0].arguments.referenceImageIndices,[-1,-2]);});
+test("token spending cannot be silently enabled",()=>assert.throws(()=>buildSogniLookPlan({prompt:"New hairstyle",integrity:"strict",referenceUrls:["https://example.com/a.jpg"],billingMode:"tokens"}),/TOKEN_BILLING/));
+test("paid dispatch always fails closed",()=>assert.throws(()=>enforceSogniNoDispatch(),/DISPATCH/));
