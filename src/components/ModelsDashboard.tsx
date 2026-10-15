@@ -13,8 +13,9 @@ const builtIns = [
   { key:"lily" as const, name:"Lily", subtitle:"Character 002", id:"character-lily-001", projectId:"lily" },
 ];
 
-type Model = {key:string;name:string;subtitle:string;id:string;projectId:string};
-function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate:()=>void}) {
+type Model = {key:string;name:string;subtitle:string;id:string;projectId:string;description?:string};
+type DashboardView = "large" | "medium" | "list";
+function ModelCard({model,onOpen,onCreate,view}:{model:Model;onOpen:()=>void;onCreate:()=>void;view:DashboardView}) {
   const [assets,setAssets] = useState<UploadedCreativeAsset[]>([]);
   const [selected,setSelected]=useState<string|null>(null);
   useEffect(()=>{
@@ -28,12 +29,16 @@ function ModelCard({model,onOpen,onCreate}:{model:Model;onOpen:()=>void;onCreate
   // Asset metadata stays private; previews must use the existing authenticated asset component.
   // Avoid exposing storage object paths or synthesizing public URLs.
   const cover = resolveCharacterAsset(assets,selected);
-  return <article className="model-card">
+  const generated=assets.filter(a=>a.type==="generated-look");
+  const additional=assets.filter(a=>a.type==="additional-reference");
+  const canon=assets.filter(a=>["identity-reference","character-board","full-body-reference"].includes(a.type));
+  const previews=[...assets.filter(a=>a.id!==cover?.id)].slice(0,view==="list"?4:3);
+  return <article className={"model-card mm-model-"+view}>
     <button className="model-cover" type="button" onClick={onOpen} aria-label={"Open "+model.name}>
       {cover ? <img className="model-cover-image" src={cover.downloadUrl} alt={model.name+" portrait"}/> : <span className="model-monogram">{model.name[0]}</span>}
       <span className="model-cover-caption">{assets.length ? assets.length+" private assets" : "Add identity reference"}</span>
     </button>
-    <div className="model-card-footer"><div><h2>{model.name}</h2><p>{model.subtitle}</p></div>
+    <div className="model-card-footer"><div className="mm-model-info"><h2>{model.name}</h2><p>{model.subtitle}</p>{model.description&&<p className="mm-model-description">{model.description}</p>}<div className="mm-model-facts"><span>{canon.length} core</span><span>{additional.length} extra</span><span>{generated.length} looks</span></div>{previews.length>0&&<div className="mm-model-previews" aria-label={"Content previews for "+model.name}>{previews.map(image=><img key={image.id} src={image.downloadUrl} title={image.displayName||image.name} alt={image.displayName||image.name} loading="lazy"/>)}</div>}</div>
       <div className="model-card-actions"><button onClick={onOpen} type="button">Profile</button><button className="model-create" onClick={onCreate} type="button">Create ↗</button></div>
     </div>
   </article>;
@@ -57,9 +62,11 @@ export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}
  const [name,setName]=useState("");
  const [description,setDescription]=useState("");
  const [busy,setBusy]=useState(false);
+ const [view,setView]=useState<DashboardView>(()=>{try{const v=window.localStorage.getItem("mm-models-view");return v==="large"||v==="medium"||v==="list"?v:"medium"}catch{return "medium"}});
  const [error,setError]=useState("");
  useEffect(()=>{let live=true;void listCustomModels().then(items=>{if(live)setCustom(items)}).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e))});return()=>{live=false}},[]);
- const models:Model[]=[...builtIns,...custom.map(c=>({key:c.id,id:"character-"+c.id,name:c.name,subtitle:"Private character",projectId:c.projectId}))];
+ const models:Model[]=[...builtIns,...custom.map(c=>({key:c.id,id:"character-"+c.id,name:c.name,subtitle:"Private character",projectId:c.projectId,description:c.description}))];
+ function chooseView(next:DashboardView){setView(next);try{window.localStorage.setItem("mm-models-view",next)}catch{ /* no storage available */ }}
  async function add(e:React.FormEvent){e.preventDefault();setBusy(true);setError("");try{
   const created=await createCustomModel(name,description);setCustom(current=>[...current,created]);setAdding(false);setName("");setDescription("");
   setActive({key:created.id,id:"character-"+created.id,name:created.name,subtitle:"Private character",projectId:created.projectId});
@@ -69,7 +76,8 @@ export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}
   <div className="dashboard-eyebrow">YOUR PRIVATE CREATIVE WORKSPACE <span> / CHARACTER LIBRARY</span></div>
   <div className="dashboard-heading"><div><h1>Cast & Characters<span className="dashboard-spark">✦</span></h1><p>Choose a character or create a new one.</p></div><button className="new-model-button" onClick={()=>setAdding(true)}>＋ New Model</button></div>
   {error&&!adding&&<p role="alert">{error}</p>}
-  <div className="model-grid">{models.map(model=><ModelCard key={model.key} model={model} onOpen={()=>setActive(model)} onCreate={()=>onCreate(model.id)}/>)}</div>
+  <nav className="mm-view-toolbar" aria-label="Character display mode"><span>{models.length} characters</span><div role="group" aria-label="View options">{([["large","▣ Large"],["medium","▦ Medium"],["list","☷ List"]] as const).map(([id,label])=><button type="button" key={id} aria-pressed={view===id} className={view===id?"selected":""} onClick={()=>chooseView(id)}>{label}</button>)}</div></nav>
+  <div className={"model-grid mm-model-grid-"+view}>{models.map(model=><ModelCard key={model.key} model={model} view={view} onOpen={()=>setActive(model)} onCreate={()=>onCreate(model.id)}/>)}</div>
   <section className="dashboard-footnote"><span>PRIVATE BY DESIGN</span><p>{models.length} characters in your private workspace.</p></section>
   {adding&&<div className="new-model-overlay"><form className="new-model-dialog" role="dialog" aria-modal="true" aria-labelledby="new-model-title" onSubmit={e=>void add(e)}>
    <h2 id="new-model-title">New model</h2><label htmlFor="new-model-name">Name</label><input id="new-model-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/>
