@@ -72,7 +72,31 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
   if(!["queued","running","completed","failed","partial_failure","cancelled","waiting_for_user"].includes(status))return result(502,{error:"UNKNOWN_PROVIDER_STATUS"});
   if(status!=="completed"){
    const terminal=["failed","partial_failure","cancelled"].includes(status);
-   const failure=terminal?extractWorkflowFailure(workflow):null;
+   let failure=terminal?extractWorkflowFailure(workflow):null;
+   if(terminal){
+    try {
+     const log=await sogni(api+"/"+encodeURIComponent(job.workflowId)+"/events",key);
+     if(log.ok){
+      const data=log.data?.data??log.data;
+      const events=Array.isArray(data)?data:Array.isArray(data?.events)?data.events:[];
+      const failedEvents=events.filter(e=>["step_failed","workflow_failed"].includes(e?.type??e?.eventType??e?.event));
+      const latest=failedEvents[failedEvents.length-1];
+      if(latest){
+       const eventDetails=latest.data??latest.payload??latest;
+       const eventCode=eventDetails?.errorCode??eventDetails?.code??eventDetails?.error?.code??eventDetails?.errorType;
+       const eventMessage=eventDetails?.error?.message??eventDetails?.message??eventDetails?.reason;
+       const code=typeof eventCode==="string"&&/^[A-Za-z0-9_.-]{1,80}$/.test(eventCode)?eventCode:failure.code;
+       // Do not disclose raw event payload: provider may include prompts or private media URLs.
+       const category=typeof eventMessage==="string"?
+        (/quota|credit|subscription|plan|billing/i.test(eventMessage)?"BILLING_OR_PLAN":
+        /model|unsupported|invalid.argument/i.test(eventMessage)?"MODEL_OR_ARGUMENT":
+        /media|image|reference|download|url/i.test(eventMessage)?"REFERENCE_MEDIA":
+        /safety|content|policy/i.test(eventMessage)?"CONTENT_POLICY":"PROVIDER_STEP_FAILURE"):"PROVIDER_STEP_FAILURE";
+       failure={code,detail:"Sogni failure event category: "+category+".",stepStatus:failure.stepStatus,eventType:latest.type??latest.eventType??latest.event};
+      }
+     }else console.warn("Sogni event log unavailable",{workflowId:job.workflowId,httpStatus:log.status});
+    }catch(error){console.warn("Sogni event log fetch failed",{workflowId:job.workflowId,reason:error instanceof Error?error.name:"unknown"});}
+   }
    await ref.update({status,updatedAt:new Date(),...(failure?{failureCode:failure.code,failureDetail:failure.detail}:{})});
    return result(200,{status,draftId:id,waitingReason:workflow.waitingReason||null,...(failure?{failure}:{})});
   }
