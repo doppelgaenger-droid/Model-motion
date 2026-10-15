@@ -21,7 +21,7 @@ function payload(d,urls){
  const instruction=d.integrity==="strict"?"Preserve the same recognizable face, bone structure, and identity from the supplied references.":d.integrity==="balanced"?"Keep the identity recognizable while changing the requested styling.":"Keep character identity recognizable while permitting creative styling.";
  return {input:{title:"Model Motion character look",steps:[{id:"image",toolName:"edit_image",arguments:{model:"krea-identity-edit",prompt:instruction+" "+d.prompt.trim(),sourceImageIndex:-1,referenceImageIndices:urls.map((_,i)=>-i-1)}}]},media_references:urls.map(url=>({kind:"image",url})),billing_mode:"subscription",token_type:"spark",confirm_cost:true,app_source:"model-motion"};
 }
-export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=getStorage().bucket()}){
+export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=getStorage().bucket("model-motion.firebasestorage.app")}){
  if(!body||typeof body!=="object"||Array.isArray(body))return result(400,{error:"INVALID_REQUEST"});
  if(path==="/looks/start"){
   const id=body.draftId;if(!safeId(id)||Object.keys(body).some(k=>k!=="draftId"))return result(400,{error:"INVALID_DRAFT_ID"});
@@ -54,7 +54,7 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
   const host=new URL(link).hostname;if(!/^(?:[a-z0-9-]+\.)*(?:sogni\.ai|sognistorage\.com|amazonaws\.com|cloudfront\.net)$/.test(host))return result(502,{error:"ARTIFACT_HOST_NOT_ALLOWED"});
   const img=await fetch(link,{signal:AbortSignal.timeout(20000),redirect:"error"});
   const mime=img.headers.get("content-type")?.split(";")[0]||"";
-  if(!img.ok||!["image/jpeg","image/png","image/webp"].includes(mime))return result(502,{error:"ARTIFACT_NOT_IMAGE"});
+  if(!img.ok||!["image/jpeg","image/png","image/webp"].includes(mime)||Number(img.headers.get("content-length")||0)>25*1024*1024)return result(502,{error:"ARTIFACT_NOT_IMAGE"});
   const bytes=Buffer.from(await img.arrayBuffer());if(bytes.length>25*1024*1024)return result(413,{error:"ARTIFACT_TOO_LARGE"});
   const suffix=mime==="image/png"?"png":mime==="image/webp"?"webp":"jpg";
   const storagePath="model-motion/users/"+uid+"/characters/"+job.characterId+"/generated-look/"+id+"."+suffix;
