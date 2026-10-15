@@ -1,1 +1,25 @@
 .model-cover-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.new-model-button{background:#aaa5ff;color:#141319;border:0;border-radius:8px;font-weight:700;padding:12px 18px}.new-model-overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#050508dd;padding:20px}.new-model-dialog{width:min(100%,460px);display:grid;gap:12px;padding:30px;border:1px solid #4b4a57;border-radius:14px;background:#202027}.new-model-dialog h2{font-size:25px;margin:0 0 10px}.new-model-dialog label{font-size:11px}.new-model-dialog input,.new-model-dialog textarea{width:100%;border:1px solid #4a4b55;border-radius:7px;background:#14151b;color:#fff;padding:12px;font:inherit}.new-model-dialog p{font-size:11px;color:#b7b6c1}.new-model-dialog-actions{display:flex;justify-content:flex-end;gap:12px}.new-model-dialog-actions>button:first-child,.model-back{background:transparent;border:1px solid #4b4b55;border-radius:8px;padding:10px 15px}.model-back{margin-bottom:25px}.model-profile-assets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}@media(max-width:700px){.model-profile-assets{grid-template-columns:1fr}}
+/* Three layouts for the private character library */
+.mm-view-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:10px 0 22px;color:#aaa9b7;font-size:12px}
+.mm-view-toolbar>div{display:inline-flex;gap:3px;padding:4px;border:1px solid #444451;background:#1e1e26;border-radius:10px}
+.mm-view-toolbar button{border:0;background:transparent;color:#b1b0bd;border-radius:7px;padding:9px 14px;font-size:12px;cursor:pointer}
+.mm-view-toolbar button.selected,.mm-view-toolbar button[aria-pressed="true"]{background:#aaa5ff;color:#17131f;font-weight:700}
+.mm-view-toolbar button:focus-visible{outline:2px solid #aaa5ff;outline-offset:3px}
+.models-dashboard .mm-model-grid-large{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:24px}
+.models-dashboard .mm-model-grid-medium{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:18px}
+.models-dashboard .mm-model-grid-list{display:grid;grid-template-columns:1fr;gap:12px}
+.models-dashboard .model-grid .model-card{min-width:0;overflow:hidden}
+.models-dashboard .mm-model-large .model-cover{height:390px}
+.models-dashboard .mm-model-medium .model-cover{height:270px}
+.models-dashboard .mm-model-list{display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr);min-height:220px}
+.models-dashboard .mm-model-list .model-cover{height:100%;min-height:220px;border-radius:0}
+.models-dashboard .mm-model-list .model-card-footer{display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;gap:14px}
+.models-dashboard .mm-model-info{min-width:0}
+.models-dashboard .mm-model-description{font-size:12px;line-height:1.55;max-width:68ch;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.models-dashboard .mm-model-facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.models-dashboard .mm-model-facts span{border:1px solid #4a4656;border-radius:5px;padding:4px 7px;font-size:11px;color:#c7c4d2;white-space:nowrap}
+.models-dashboard .mm-model-previews{display:flex;gap:7px;margin-top:12px}
+.models-dashboard .mm-model-previews img{width:52px;height:65px;border:1px solid #4a4754;border-radius:5px;object-fit:cover}
+.models-dashboard .mm-model-list .mm-model-previews img{width:65px;height:75px}
+.models-dashboard .mm-model-large .mm-model-previews img{width:66px;height:78px}
+@media(max-width:650px){.mm-view-toolbar{align-items:stretch;flex-direction:column}.mm-view-toolbar>div{width:100%}.mm-view-toolbar button{flex:1}.models-dashboard .mm-model-list{grid-template-columns:105px minmax(0,1fr);min-height:210px}.models-dashboard .mm-model-list .model-cover{min-height:210px}.models-dashboard .mm-model-list .model-card-footer{padding:12px}.models-dashboard .mm-model-list .model-card-actions{flex-wrap:wrap}.models-dashboard .mm-model-list .mm-model-previews img{width:39px;height:49px}}
