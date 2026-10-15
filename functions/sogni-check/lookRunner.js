@@ -21,6 +21,20 @@ function payload(d,urls){
  const instruction=d.integrity==="strict"?"Preserve the same recognizable face, bone structure, and identity from the supplied references.":d.integrity==="balanced"?"Keep the identity recognizable while changing the requested styling.":"Keep character identity recognizable while permitting creative styling.";
  return {input:{title:"Model Motion character look",steps:[{id:"image",toolName:"edit_image",arguments:{model:"krea-identity-edit",prompt:instruction+" "+d.prompt.trim(),sourceImageIndex:-1,...(urls.length>1?{referenceImageIndices:urls.slice(1).map((_,i)=>-(i+2))}:{})}}]},media_references:urls.map(url=>({kind:"image",url})),billing_mode:"subscription",token_type:"spark",confirm_cost:true,app_source:"model-motion"};
 }
+
+function extractWorkflowFailure(workflow){
+ const steps=Array.isArray(workflow?.steps)?workflow.steps:[];
+ const failed=steps.find(s=>["failed","error","partial_failure"].includes(s?.status))||steps[steps.length-1]||{};
+ const rawCode=failed.errorCode??failed.error?.code??workflow.errorCode??workflow.error?.code;
+ const code=typeof rawCode==="string"&&/^[A-Za-z0-9_.-]{1,80}$/.test(rawCode)?rawCode:"PROVIDER_WORKFLOW_FAILED";
+ const candidates=[failed.error?.message,failed.errorMessage,failed.failureReason,workflow.error?.message,workflow.errorMessage,workflow.failureReason];
+ const message=candidates.find(v=>typeof v==="string"&&v.trim());
+ // Provider messages may contain private prompts, URLs or signed credentials.
+ // Keep detailed provider data in server logs, return only a safe categorical code.
+ const detail=message?"Sogni returned a failure for the image-edit step. Check the provider workflow for details.":"Sogni did not provide a structured failure reason in the workflow snapshot.";
+ return {code,detail,stepStatus:typeof failed.status==="string"?failed.status:"unknown"};
+}
+
 export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=null}){
  let stage="validate_request";
  try {
@@ -56,7 +70,12 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
   if(!response.ok)return result(502,{error:"SOGNI_STATUS_UNAVAILABLE"});
   const workflow=response.data?.data?.workflow;const status=workflow?.status;
   if(!["queued","running","completed","failed","partial_failure","cancelled","waiting_for_user"].includes(status))return result(502,{error:"UNKNOWN_PROVIDER_STATUS"});
-  if(status!=="completed"){await ref.update({status,updatedAt:new Date()});return result(200,{status,draftId:id,waitingReason:workflow.waitingReason||null})}
+  if(status!=="completed"){
+   const terminal=["failed","partial_failure","cancelled"].includes(status);
+   const failure=terminal?extractWorkflowFailure(workflow):null;
+   await ref.update({status,updatedAt:new Date(),...(failure?{failureCode:failure.code,failureDetail:failure.detail}:{})});
+   return result(200,{status,draftId:id,waitingReason:workflow.waitingReason||null,...(failure?{failure}:{})});
+  }
   const artifact=workflow.steps?.[0]?.artifacts?.[0];
   const link=artifact?.url;if(typeof link!=="string"||!link.startsWith("https://"))return result(502,{error:"ARTIFACT_UNAVAILABLE"});
   // Avoid requesting arbitrary endpoints: only provider-issued HTTPS artifact hosts are accepted.
