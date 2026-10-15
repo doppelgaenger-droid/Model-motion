@@ -37,7 +37,7 @@ export const sogniCredentialCheckEu = onRequest(
       console.warn("Sogni EU Firebase auth verification failed", { reason: safeReason, firebaseCode: code.startsWith("auth/") ? code : "non-auth-error" });
       return res.status(401).json({ error: "Authentication required", reason: safeReason });
     }
-    if (req.path === "/looks/start" || req.path === "/looks/status") {
+    if (req.path === "/looks/start" || req.path === "/looks/status" || req.path === "/looks/reference-preflight") {
       try {const output=await runLookAction({path:req.path,body:req.body,uid:OWNER_UID,key:sogniKey.value()});return res.status(output.status).json(output.body)}
       catch (error) {const code=String(error?.code||"");const stage=typeof error?.runnerStage==="string"?error.runnerStage:"unknown";const reason=code==="7"||code==="permission-denied"||code==="PERMISSION_DENIED"?"PERMISSION_DENIED":error?.name==="TimeoutError"?"TIMEOUT":error?.name==="AbortError"?"TIMEOUT":"INTERNAL_ERROR";console.error("Look runner failed",{stage,reason,code,message:error instanceof Error?error.message:"Unknown exception"});return res.status(500).json({error:"LOOK_RUNNER_FAILED",stage,reason,detail:"The Sogni runner failed during "+stage+". Check the Firebase function logs for details."})}
     }
