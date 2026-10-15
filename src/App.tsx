@@ -77,7 +77,7 @@ export function App(){
     </aside>
 
     <main className="content">
-      {selected==="models" && <ModelsDashboard onOpen={id=>setSelected(id)} onCreate={id=>{setStudioCharacter(id==="lily"?"character-lily-001":"character-mara-001");setSelected("generator")}}/>}
+      {selected==="models" && <ModelsDashboard onCreate={id=>{setStudioCharacter(id);setSelected("generator")}}/>}
       {selected==="settings" && <SettingsOverview/>}
       {selected==="generator" && <GeneratorStudio initialCharacterId={studioCharacter}/>}
       {selected==="audit" && <CharacterAssetAudit/>}
