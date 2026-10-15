@@ -27,7 +27,7 @@ export function LookComposer({owner,characterName,assets,onGenerated}:{owner:Ext
   try{
    const token=await auth.currentUser?.getIdToken();if(!token)throw Error("Sign in first.");
    const response=await fetch("https://europe-west1-model-motion.cloudfunctions.net/sogniCredentialCheckEu/looks/"+action,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({draftId:draft.id})});
-   const raw=await response.text();let data:Record<string,any>;try{data=JSON.parse(raw)}catch{throw Error("The Sogni backend returned an unexpected response (HTTP "+response.status+"). Check the EU Function deployment.")}if(!response.ok)throw Error([data.error,data.reason,data.providerHttpStatus?"provider HTTP "+data.providerHttpStatus:""].filter(Boolean).join(" · ")||"Sogni request failed (HTTP "+response.status+")");
+   const raw=await response.text();let data:Record<string,any>;try{data=JSON.parse(raw)}catch{throw Error("The Sogni backend returned an unexpected response (HTTP "+response.status+"). Check the EU Function deployment.")}if(!response.ok)throw Error([data.error,data.reason,data.detail,data.providerHttpStatus?"provider HTTP "+data.providerHttpStatus:""].filter(Boolean).join(" · ")||"Sogni request failed (HTTP "+response.status+")");
    setJobs(x=>({...x,[draft.id]:data.status}));
    setMessage(data.status==="saved"?"Image saved in the character gallery.":"Job status: "+data.status);
    if(data.status==="saved")onGenerated?.();

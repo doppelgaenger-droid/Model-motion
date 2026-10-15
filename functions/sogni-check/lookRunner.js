@@ -19,7 +19,7 @@ async function refs(db,uid,d){
 }
 function payload(d,urls){
  const instruction=d.integrity==="strict"?"Preserve the same recognizable face, bone structure, and identity from the supplied references.":d.integrity==="balanced"?"Keep the identity recognizable while changing the requested styling.":"Keep character identity recognizable while permitting creative styling.";
- return {input:{title:"Model Motion character look",steps:[{id:"image",toolName:"edit_image",arguments:{model:"krea-identity-edit",prompt:instruction+" "+d.prompt.trim(),sourceImageIndex:-1,referenceImageIndices:urls.map((_,i)=>-i-1)}}]},media_references:urls.map(url=>({kind:"image",url})),billing_mode:"subscription",token_type:"spark",confirm_cost:true,app_source:"model-motion"};
+ return {input:{title:"Model Motion character look",steps:[{id:"image",toolName:"edit_image",arguments:{model:"krea-identity-edit",prompt:instruction+" "+d.prompt.trim(),sourceImageIndex:-1,...(urls.length>1?{referenceImageIndices:urls.slice(1).map((_,i)=>-(i+2))}:{})}}]},media_references:urls.map(url=>({kind:"image",url})),billing_mode:"subscription",token_type:"spark",confirm_cost:true,app_source:"model-motion"};
 }
 export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=getStorage().bucket("model-motion.firebasestorage.app")}){
  if(!body||typeof body!=="object"||Array.isArray(body))return result(400,{error:"INVALID_REQUEST"});
