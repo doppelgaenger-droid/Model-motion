@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
 
@@ -47,6 +47,10 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
     const downloadUrl = await getDownloadURL(objectRef);
     const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
+    const persisted = await getDoc(document);
+    if (!persisted.exists() || persisted.data().uploadedBy !== user.uid || persisted.data().storagePath !== storagePath) {
+      throw new Error("Upload reached Storage but its Firestore metadata could not be verified. Check your connection and permissions.");
+    }
     return { id:document.id, schemaVersion:metadata.schemaVersion, characterId:metadata.characterId ?? undefined, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
   } catch (error) {
     await deleteObject(objectRef).catch(() => undefined);
