@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { AssetGallery } from "./AssetGallery";
-import { uploadCreativeAsset, type AssetOwner, type UploadedCreativeAsset } from "../assets/upload";
+import { listCreativeAssets, uploadCreativeAsset, type AssetOwner, type UploadedCreativeAsset } from "../assets/upload";
 import "./ExtraReferences.css";
 
 export function ExtraReferences({owner,assets,onAdded,onDeleted}:{owner:Extract<AssetOwner,{kind:"character"}>;assets:UploadedCreativeAsset[];onAdded:(asset:UploadedCreativeAsset)=>void;onDeleted:(id:string)=>void}){
@@ -12,14 +12,19 @@ export function ExtraReferences({owner,assets,onAdded,onDeleted}:{owner:Extract<
   if(!files||!files.length||busy)return;
   const selected=Array.from(files);
   setBusy(true);setError("");
-  let success=0;const failures:string[]=[];
+  let success=0;const failures:string[]=[];const savedIds:string[]=[];
   try{
    for(const [index,file] of selected.entries()){
     setProgress("Uploading "+(index+1)+" of "+selected.length+"…");
-    try{const result=await uploadCreativeAsset(file,owner,"additional-reference");onAdded(result);success++;}
+    try{const result=await uploadCreativeAsset(file,owner,"additional-reference");onAdded(result);savedIds.push(result.id);success++;}
     catch(e){failures.push(file.name+": "+(e instanceof Error?e.message:String(e)));}
    }
-   setProgress(success+" of "+selected.length+" uploaded");
+   try {
+    const persisted=await listCreativeAssets(owner);
+    const missing=savedIds.filter(id=>!persisted.some(asset=>asset.id===id));
+    if(missing.length) failures.push(missing.length+" uploaded records were not returned by Firebase. Please refresh and check before retrying.");
+   }catch(e){failures.push("Unable to verify saved images: "+(e instanceof Error?e.message:String(e)));}
+   setProgress(failures.length?success+" uploaded; persistence needs attention":success+" of "+selected.length+" saved and verified");
    if(failures.length)setError(failures.join(" | "));
   }finally{setBusy(false);if(fileRef.current)fileRef.current.value="";}
  }

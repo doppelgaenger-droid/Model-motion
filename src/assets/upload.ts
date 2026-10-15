@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, where } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
 
@@ -43,13 +43,21 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
   const objectRef = ref(storage, storagePath);
   await uploadBytes(objectRef, file, { contentType: file.type });
 
+  let metadataWritten = false;
   try {
     const downloadUrl = await getDownloadURL(objectRef);
     const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
+    metadataWritten = true;
+    const persisted = await getDoc(document);
+    if (!persisted.exists() || persisted.data().uploadedBy !== user.uid || persisted.data().storagePath !== storagePath) {
+      throw new Error("Upload reached Storage but its Firestore metadata could not be verified. Check your connection and permissions.");
+    }
     return { id:document.id, schemaVersion:metadata.schemaVersion, characterId:metadata.characterId ?? undefined, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
   } catch (error) {
-    await deleteObject(objectRef).catch(() => undefined);
+    // Keep the object when metadata was written but its readback failed.
+    // Deleting it here would leave a broken Firestore record.
+    if (!metadataWritten) await deleteObject(objectRef).catch(() => undefined);
     throw error;
   }
 }
