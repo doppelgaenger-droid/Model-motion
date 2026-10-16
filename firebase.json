@@ -20,6 +20,10 @@
     {
       "source": "functions/core",
       "codebase": "core"
+    },
+    {
+      "source": "functions/spicyapi",
+      "codebase": "spicyapi"
     }
   ]
 }
