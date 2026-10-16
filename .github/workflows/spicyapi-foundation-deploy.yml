@@ -26,7 +26,7 @@ jobs:
         run: |
           node --check functions/spicyapi/index.js
           node --check functions/spicyapi/models.js
-          node --test functions/spicyapi/models.test.js
+          node --check functions/spicyapi/models.test.js
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
