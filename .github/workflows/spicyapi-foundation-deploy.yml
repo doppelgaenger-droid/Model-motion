@@ -1,0 +1,39 @@
+name: SpicyAPI Foundation EU Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: "Type model-motion (manual deploy, no generations)"
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: model-motion-spicyapi-foundation-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_project == 'model-motion'
+    runs-on: ubuntu-latest
+    environment: firebase-production-functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate foundation
+        run: |
+          node --check functions/spicyapi/index.js
+          node --check functions/spicyapi/models.js
+          node --test functions/spicyapi/models.test.js
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: model-motion
+      - name: Install
+        working-directory: functions/spicyapi
+        run: npm install --no-audit --no-fund
+      - name: Deploy isolated SpicyAPI function
+        run: npx --yes firebase-tools@14 deploy --only functions:spicyapi:modelMotionSpicyEu --project model-motion --non-interactive
