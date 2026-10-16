@@ -2,7 +2,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import {defineSecret} from "firebase-functions/params";
 import {initializeApp,getApps} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
-import {describeModel,listModels,estimateVideoCost} from "./models.js";
+import {describeModel,listModels,estimateVideoCost,estimateImageCost} from "./models.js";
 
 if(!getApps().length)initializeApp();
 const secret=defineSecret("SPICYAPI_API_KEY");
@@ -38,9 +38,8 @@ export const modelMotionSpicyEu=onRequest({
  if(req.path==="/foundation/estimate"){
   const model=describeModel(body.modelId);
   if(!model)return res.status(422).json({error:"UNKNOWN_MODEL"});
-  if(model.kind!=="video")return res.status(422).json({error:"ESTIMATE_NOT_AVAILABLE_FOR_IMAGE"});
-  const estimated=estimateVideoCost(body);
-  if(!estimated)return res.status(422).json({error:"INVALID_DURATION_OR_RESOLUTION"});
+  const estimated=model.kind==="video"?estimateVideoCost(body):estimateImageCost(body);
+  if(!estimated)return res.status(422).json({error:"INVALID_ESTIMATE_OPTIONS"});
   return res.status(200).json({provider:"spicyapi",modelId:model.id,previewOnly:true,
    dispatchReady:false,paidDispatchEnabled:false,referenceLimit:model.maxImages,estimate:estimated,
    note:"Planning estimate only; verify final provider charge before dispatch."
