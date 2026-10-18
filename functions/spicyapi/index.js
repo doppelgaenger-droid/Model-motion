@@ -7,7 +7,7 @@ import {connect} from "node:tls";
 import {describeModel,listModels,estimateVideoCost,estimateImageCost} from "./models.js";
 
 if(!getApps().length)initializeApp();
-const secret=defineSecret("SPICYAPI_API_KEY");
+const secret=defineSecret("SPICY_APY_KEY");
 const OWNER_UID="JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
 const ORIGIN="https://doppelgaenger-droid.github.io";
 
