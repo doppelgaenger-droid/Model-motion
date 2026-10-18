@@ -63,7 +63,12 @@ export const modelMotionSpicyEu=onRequest({
  }
  if(req.path==="/foundation/live-catalog"){
   try{
-   const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers:{Authorization:"Bearer "+secret.value(),Accept:"application/json"},signal:AbortSignal.timeout(12000),redirect:"error"});
+   const rawSecret=secret.value();
+   const apiKey=typeof rawSecret==="string"?rawSecret.trim():"";
+   if(!apiKey)return res.status(503).json({error:"PROVIDER_KEY_EMPTY"});
+   if(/[\\r\\n\\u0000-\\u001f\\u007f-\\u009f]/.test(apiKey)||!/^[\\x21-\\x7e]+$/.test(apiKey))return res.status(422).json({error:"PROVIDER_KEY_INVALID_FORMAT"});
+   const headers=new Headers({Authorization:"Bearer "+apiKey,Accept:"application/json"});
+   const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers,signal:AbortSignal.timeout(12000),redirect:"error"});
    if(!response.ok)return res.status(502).json({error:response.status===401?"PROVIDER_KEY_REJECTED":response.status===403?"PROVIDER_KEY_FORBIDDEN":"PROVIDER_CATALOG_HTTP_ERROR",providerHttpStatus:response.status});
    const responseText=await response.text();
    let result;try{result=JSON.parse(responseText)}catch{return res.status(502).json({error:"PROVIDER_NON_JSON_RESPONSE",providerHttpStatus:response.status})}
