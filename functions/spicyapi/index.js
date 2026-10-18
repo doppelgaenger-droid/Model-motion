@@ -2,12 +2,34 @@ import {onRequest} from "firebase-functions/v2/https";
 import {defineSecret} from "firebase-functions/params";
 import {initializeApp,getApps} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
+import {lookup} from "node:dns/promises";
+import {connect} from "node:tls";
 import {describeModel,listModels,estimateVideoCost,estimateImageCost} from "./models.js";
 
 if(!getApps().length)initializeApp();
 const secret=defineSecret("SPICYAPI_API_KEY");
 const OWNER_UID="JZK1aIhqo5Zgl0oEbdCjhlko5qC3";
 const ORIGIN="https://doppelgaenger-droid.github.io";
+
+async function transportProbe(host){
+ const results={host,dns:"unknown",tcpTls:"unknown",http:"unknown"};
+ try{const addresses=await Promise.race([lookup(host,{all:true}),new Promise((_,reject)=>setTimeout(()=>reject(new Error("DNS_TIMEOUT")),5000))]);results.dns=addresses.length?"ok":"empty";results.addressFamilies=[...new Set(addresses.map(a=>a.family))]}catch(e){results.dns=e?.message==="DNS_TIMEOUT"?"timeout":e?.code==="ENOTFOUND"?"not-found":"failed"}
+ if(results.dns!=="ok")return results;
+ try{
+  await new Promise((resolve,reject)=>{
+   const socket=connect({host,port:443,servername:host,rejectUnauthorized:true,timeout:7000},()=>{results.tcpTls="ok";socket.end();resolve()});
+   socket.once("timeout",()=>{socket.destroy();reject(new Error("TLS_TIMEOUT"))});
+   socket.once("error",reject);
+  });
+ }catch(e){results.tcpTls=e?.message==="TLS_TIMEOUT"?"timeout":typeof e?.code==="string"&&["ECONNRESET","ECONNREFUSED","ENETUNREACH","ETIMEDOUT"].includes(e.code)?e.code:"failed"}
+ if(results.tcpTls!=="ok")return results;
+ try{
+  const response=await fetch("https://"+host+"/api/v1/models",{redirect:"manual",signal:AbortSignal.timeout(7000)});
+  results.http=response.status===401?"401-auth-required":response.status===403?"403-forbidden":response.status>=200&&response.status<500?"reachable":"server-error";
+  await response.body?.cancel();
+ }catch(e){results.http=e?.name==="TimeoutError"?"timeout":e?.cause?.code&&["ENOTFOUND","ECONNRESET","ETIMEDOUT"].includes(e.cause.code)?e.cause.code:"fetch-failed"}
+ return results;
+}
 
 export const modelMotionSpicyEu=onRequest({
  region:"europe-west1",secrets:[secret],
@@ -35,6 +57,10 @@ export const modelMotionSpicyEu=onRequest({
   generationEnabled:false,paidDispatchEnabled:false,readOnly:true,
   models:listModels()
  });
+ if(req.path==="/foundation/transport-probe"){
+  const checks=await Promise.all([transportProbe("api.spicyapi.ai"),transportProbe("www.google.com")]);
+  return res.status(200).json({readOnly:true,generationEnabled:false,paidDispatchEnabled:false,checks});
+ }
  if(req.path==="/foundation/live-catalog"){
   try{
    const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers:{Authorization:"Bearer "+secret.value(),Accept:"application/json"},signal:AbortSignal.timeout(12000),redirect:"error"});
