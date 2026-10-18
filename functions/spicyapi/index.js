@@ -37,13 +37,14 @@ export const modelMotionSpicyEu=onRequest({
  });
  if(req.path==="/foundation/live-catalog"){
   try{
-   const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers:{Authorization:"Bearer "+secret.value()},signal:AbortSignal.timeout(12000)});
-   if(!response.ok)return res.status(502).json({error:"PROVIDER_CATALOG_ERROR",providerHttpStatus:response.status});
-   const result=await response.json();
-   if(result?.code!==200||!Array.isArray(result?.data?.items))return res.status(502).json({error:"INVALID_PROVIDER_RESPONSE"});
+   const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers:{Authorization:"Bearer "+secret.value(),Accept:"application/json"},signal:AbortSignal.timeout(12000),redirect:"error"});
+   if(!response.ok)return res.status(502).json({error:response.status===401?"PROVIDER_KEY_REJECTED":response.status===403?"PROVIDER_KEY_FORBIDDEN":"PROVIDER_CATALOG_HTTP_ERROR",providerHttpStatus:response.status});
+   const responseText=await response.text();
+   let result;try{result=JSON.parse(responseText)}catch{return res.status(502).json({error:"PROVIDER_NON_JSON_RESPONSE",providerHttpStatus:response.status})}
+   if(result?.code!==200||!Array.isArray(result?.data?.items))return res.status(502).json({error:"INVALID_PROVIDER_RESPONSE",providerCode:typeof result?.code==="number"?result.code:null,providerMessageType:typeof result?.msg});
    const curated=listModels().map(m=>{const item=result.data.items.find(i=>i.model===m.id);return {id:m.id,found:!!item,enabled:item?.enabled===true,available:item?.available===true}});
    return res.status(200).json({credentialAccepted:true,curated,liveCount:result.data.items.length,generationEnabled:false,paidDispatchEnabled:false});
-  }catch{return res.status(502).json({error:"CATALOG_UNAVAILABLE"})}
+  }catch(error){const reason=error?.name==="TimeoutError"?"PROVIDER_TIMEOUT":error?.name==="TypeError"?"PROVIDER_NETWORK_ERROR":"PROVIDER_REQUEST_EXCEPTION";console.warn("SpicyAPI catalog fetch failed",{reason,errorName:error?.name||"unknown",causeCode:typeof error?.cause?.code==="string"?error.cause.code:"unknown"});return res.status(502).json({error:reason})}
  }
  if(req.path==="/foundation/estimate"){
   const model=describeModel(body.modelId);
