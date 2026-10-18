@@ -6,7 +6,7 @@ async function post(url:string,body:Record<string,unknown>){
  if(!token)throw new Error("Sign in first.");
  const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify(body)});
  const data=await response.json();
- if(!response.ok)throw new Error(data.error||"HTTP "+response.status);
+ if(!response.ok)throw new Error([data.error,data.providerHttpStatus?"HTTP "+data.providerHttpStatus:"",data.providerCode?"code "+data.providerCode:""].filter(Boolean).join(" · ")||"HTTP "+response.status);
  return data;
 }
 export function ProviderDiagnostics(){
