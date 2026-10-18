@@ -33,6 +33,11 @@ export function ProviderDiagnostics(){
   if(d.credentialAccepted!==true||d.paidDispatchEnabled!==false||!Array.isArray(d.curated))throw Error("Invalid live catalog response.");
   setSpicy("SpicyAPI key accepted · "+d.liveCount+" accessible catalog entries · "+d.curated.map((m:{id:string;found:boolean;enabled:boolean;available:boolean})=>m.id.split("/").slice(-2).join("/")+": "+(!m.found?"not listed":m.enabled&&m.available?"callable":"not available")).join(" · ")+". No generation.");
  }catch(e){setSpicy(e instanceof Error?e.message:String(e))}finally{setBusy("")}}
+ async function checkSpicyTransport(){setBusy("spicy-transport");setSpicy("");try{
+ const d=await post(root+"/modelMotionSpicyEu/foundation/transport-probe",{});
+ if(d.readOnly!==true||d.paidDispatchEnabled!==false||!Array.isArray(d.checks))throw Error("Unexpected transport probe response.");
+ setSpicy(d.checks.map((r:{host:string;dns:string;tcpTls:string;http:string;addressFamilies?:number[]})=>r.host+": DNS "+r.dns+" · TLS "+r.tcpTls+" · HTTP "+r.http+" · IP "+(r.addressFamilies?.join(",")||"unknown")).join(" | "));
+ }catch(e){setSpicy(e instanceof Error?e.message:String(e))}finally{setBusy("")}}
  async function checkCore(){setBusy("core");setCore("");try{
   const idempotencyKey="test_"+crypto.randomUUID();
   const payload={provider:"artcraft",characterId:"character-mara-001",requestedBudgetUsd:0.5,idempotencyKey};
@@ -46,7 +51,7 @@ export function ProviderDiagnostics(){
   setCore("EU Core passed: draft saved, replay idempotent, read-back verified. No provider call. Draft: "+first.job.id);
  }catch(e){setCore(e instanceof Error?e.message:String(e))}finally{setBusy("")}}
  return <div className="settings-diagnostics"><h2>API Diagnostics</h2><p>Safe connectivity tests only. No paid generation.</p>
-  <section><h3>SpicyAPI EU Foundation · no paid dispatch</h3><p>Checks backend configuration, curated models and local planning prices. Does not contact SpicyAPI or create jobs.</p><button disabled={!!busy} onClick={()=>void checkSpicy()}>{busy==="spicy"?"Checking…":"Check SpicyAPI Foundation"}</button><button disabled={!!busy} onClick={()=>void checkSpicyLive()}>{busy==="spicy-live"?"Checking…":"Verify live SpicyAPI key and models · free"}</button>{spicy&&<p role="status">{spicy}</p>}</section>
+  <section><h3>SpicyAPI EU Foundation · no paid dispatch</h3><p>Checks backend configuration, curated models and local planning prices. Does not contact SpicyAPI or create jobs.</p><button disabled={!!busy} onClick={()=>void checkSpicy()}>{busy==="spicy"?"Checking…":"Check SpicyAPI Foundation"}</button><button disabled={!!busy} onClick={()=>void checkSpicyLive()}>{busy==="spicy-live"?"Checking…":"Verify live SpicyAPI key and models · free"}</button><button disabled={!!busy} onClick={()=>void checkSpicyTransport()}>{busy==="spicy-transport"?"Checking…":"Diagnose SpicyAPI network · free"}</button>{spicy&&<p role="status">{spicy}</p>}</section>
   <section><h3>Sogni EU credentials</h3><button disabled={!!busy} onClick={()=>void checkSogni()}>{busy==="sogni"?"Checking…":"Verify credentials"}</button>{sogni&&<p role="status">{sogni}</p>}</section>
   <section><h3>EU Core draft persistence</h3><p>Creates one private test draft, verifies idempotency and retrieval.</p><button disabled={!!busy} onClick={()=>void checkCore()}>{busy==="core"?"Testing…":"Test draft persistence"}</button>{core&&<p role="status" style={{overflowWrap:"anywhere"}}>{core}</p>}</section>
  </div>;
