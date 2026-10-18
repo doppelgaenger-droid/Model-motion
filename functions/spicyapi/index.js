@@ -44,7 +44,14 @@ export const modelMotionSpicyEu=onRequest({
    if(result?.code!==200||!Array.isArray(result?.data?.items))return res.status(502).json({error:"INVALID_PROVIDER_RESPONSE",providerCode:typeof result?.code==="number"?result.code:null,providerMessageType:typeof result?.msg});
    const curated=listModels().map(m=>{const item=result.data.items.find(i=>i.model===m.id);return {id:m.id,found:!!item,enabled:item?.enabled===true,available:item?.available===true}});
    return res.status(200).json({credentialAccepted:true,curated,liveCount:result.data.items.length,generationEnabled:false,paidDispatchEnabled:false});
-  }catch(error){const reason=error?.name==="TimeoutError"?"PROVIDER_TIMEOUT":error?.name==="TypeError"?"PROVIDER_NETWORK_ERROR":"PROVIDER_REQUEST_EXCEPTION";console.warn("SpicyAPI catalog fetch failed",{reason,errorName:error?.name||"unknown",causeCode:typeof error?.cause?.code==="string"?error.cause.code:"unknown"});return res.status(502).json({error:reason})}
+  }catch(error){
+   const raw=String(error?.cause?.code??"");
+   const known=["ENOTFOUND","EAI_AGAIN","ECONNREFUSED","ECONNRESET","ETIMEDOUT","ENETUNREACH","EHOSTUNREACH","UND_ERR_CONNECT_TIMEOUT","UND_ERR_HEADERS_TIMEOUT","CERT_HAS_EXPIRED","UNABLE_TO_VERIFY_LEAF_SIGNATURE","SELF_SIGNED_CERT_IN_CHAIN"];
+   const transportCode=known.includes(raw)?raw:"OTHER";
+   const reason=error?.name==="TimeoutError"?"PROVIDER_TIMEOUT":error?.name==="TypeError"?"PROVIDER_NETWORK_ERROR":"PROVIDER_REQUEST_EXCEPTION";
+   console.warn("SpicyAPI catalog transport failure",{reason,transportCode,errorName:typeof error?.name==="string"?error.name:"unknown"});
+   return res.status(502).json({error:reason,transportCode});
+  }
  }
  if(req.path==="/foundation/estimate"){
   const model=describeModel(body.modelId);
