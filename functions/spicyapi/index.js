@@ -35,6 +35,16 @@ export const modelMotionSpicyEu=onRequest({
   generationEnabled:false,paidDispatchEnabled:false,readOnly:true,
   models:listModels()
  });
+ if(req.path==="/foundation/live-catalog"){
+  try{
+   const response=await fetch("https://api.spicyapi.ai/api/v1/models",{headers:{Authorization:"Bearer "+secret.value()},signal:AbortSignal.timeout(12000)});
+   if(!response.ok)return res.status(502).json({error:"PROVIDER_CATALOG_ERROR",providerHttpStatus:response.status});
+   const result=await response.json();
+   if(result?.code!==200||!Array.isArray(result?.data?.items))return res.status(502).json({error:"INVALID_PROVIDER_RESPONSE"});
+   const curated=listModels().map(m=>{const item=result.data.items.find(i=>i.model===m.id);return {id:m.id,found:!!item,enabled:item?.enabled===true,available:item?.available===true}});
+   return res.status(200).json({credentialAccepted:true,curated,liveCount:result.data.items.length,generationEnabled:false,paidDispatchEnabled:false});
+  }catch{return res.status(502).json({error:"CATALOG_UNAVAILABLE"})}
+ }
  if(req.path==="/foundation/estimate"){
   const model=describeModel(body.modelId);
   if(!model)return res.status(422).json({error:"UNKNOWN_MODEL"});
