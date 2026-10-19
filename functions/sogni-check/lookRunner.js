@@ -88,6 +88,32 @@ export async function runLookAction({path,body,uid,key,db=getFirestore(),bucket=
   await jobRef.update({status:"queued",workflowId,updatedAt:new Date()});
   return result(202,{draftId:id,status:"queued",provider:"sogni",billingMode:"subscription"});
  }
+ if(path==="/looks/artifact-shape"){
+  const id=body.draftId;
+  if(!safeId(id)||Object.keys(body).some(k=>k!=="draftId"))return result(400,{error:"INVALID_DRAFT_ID"});
+  stage="read_job";
+  const snap=await db.collection("characterLookJobs").doc(id).get();
+  if(!snap.exists||snap.data()?.ownerUid!==uid)return result(404,{error:"JOB_NOT_FOUND"});
+  const job=snap.data();
+  if(!safeId(job.workflowId))return result(409,{error:"WORKFLOW_NOT_AVAILABLE"});
+  // Only provider-side status reads on an existing owner-scoped workflow. No generation dispatch.
+  stage="sogni_artifact_schema";
+  const response=await sogni(api+"/"+encodeURIComponent(job.workflowId),key);
+  if(!response.ok)return result(502,{error:"SOGNI_STATUS_UNAVAILABLE"});
+  const workflow=response.data?.data?.workflow;
+  if(workflow?.status!=="completed")return result(409,{error:"WORKFLOW_NOT_COMPLETED"});
+  const steps=Array.isArray(workflow.steps)?workflow.steps:[];
+  const fields=["url","mimeType","contentType","sizeBytes","byteLength"];
+  const kind=v=>v===null?"null":Array.isArray(v)?"array":typeof v;
+  return result(200,{status:"completed",diagnosticVersion:1,
+    stepCount:steps.length,
+    steps:steps.slice(0,5).map(step=>{
+      const artifacts=Array.isArray(step?.artifacts)?step.artifacts:[];
+      return {artifactCount:artifacts.length,examples:artifacts.slice(0,2).map(a=>({
+        fields:Object.fromEntries(fields.map(field=>[field,a&&typeof a==="object"&&Object.hasOwn(a,field)?kind(a[field]):"absent"]))
+      }))};
+    }),generationStarted:false,paidDispatchEnabled:false});
+ }
  if(path==="/looks/status"){
   const id=body.draftId;if(!safeId(id)||Object.keys(body).some(k=>k!=="draftId"))return result(400,{error:"INVALID_DRAFT_ID"});
   stage="read_job";
