@@ -2,6 +2,9 @@ import {onRequest} from "firebase-functions/v2/https";
 import {defineSecret} from "firebase-functions/params";
 import {initializeApp,getApps} from "firebase-admin/app";
 import {getAuth} from "firebase-admin/auth";
+import {getFirestore} from "firebase-admin/firestore";
+import {getStorage} from "firebase-admin/storage";
+import {verifyOwnedReferences} from "./referencePreflight.js";
 import {lookup} from "node:dns/promises";
 import {connect} from "node:tls";
 import {describeModel,listModels,estimateVideoCost,estimateImageCost,planGeneration} from "./models.js";
@@ -86,7 +89,13 @@ export const modelMotionSpicyEu=onRequest({
  }
  if(req.path==="/foundation/plan"){
   const result=planGeneration(body);
-  return res.status(result.ok?200:422).json({...result,readOnly:true,paidDispatchEnabled:false});
+  if(!result.ok)return res.status(422).json({...result,readOnly:true,paidDispatchEnabled:false});
+  if(body.verifyReferences===true){
+   const check=await verifyOwnedReferences(getFirestore(),getStorage(),OWNER_UID,body.characterId,body.referenceAssetIds);
+   if(!check.ok)return res.status(check.error==="REFERENCE_VERIFICATION_UNAVAILABLE"?503:422).json({...check,readOnly:true,paidDispatchEnabled:false});
+   return res.status(200).json({...result,plan:{...result.plan,referencesResolved:true,referenceValidation:check.referenceValidation,storageExists:check.storageExists},readOnly:true,paidDispatchEnabled:false});
+  }
+  return res.status(200).json({...result,readOnly:true,paidDispatchEnabled:false});
  }
  if(req.path==="/foundation/estimate"){
   const model=describeModel(body.modelId);
