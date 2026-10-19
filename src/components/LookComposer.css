@@ -17,3 +17,12 @@
 @media(max-width:570px){.look-composer .look-actions>button,.look-composer .look-drafts button{width:100%}}
 
 .look-composer .look-adult-optin{display:flex;align-items:flex-start;gap:11px;margin:16px 0;color:#dedbe5;font-size:12px;line-height:1.5;max-width:750px}.look-composer .look-adult-optin input{margin-top:2px;width:17px;height:17px;flex:none}
+
+/* Guided look setup: visual rhythm without introducing extra primary actions. */
+.look-composer .look-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:20px 0 24px}
+.look-composer .look-steps span{padding:11px 10px;border:1px solid #484653;border-radius:8px;background:#22222b;color:#d7d3e1;font-size:12px;text-align:center}
+.look-composer .look-preview{margin:22px 0 14px;padding:18px;border:1px solid #555066;border-radius:11px;background:#202029;display:flex;flex-wrap:wrap;gap:16px;align-items:end}
+.look-composer .look-preview label{flex:1 1 220px;display:grid;gap:8px;font-size:12px}
+.look-composer .look-preview p,.look-composer .look-preview small{flex-basis:100%;margin:0}
+.look-composer .look-preview small{color:#c3bfce}
+@media(max-width:650px){.look-composer .look-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
