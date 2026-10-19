@@ -25,3 +25,26 @@ export function estimateImageCost({modelId,resolution="1k",imageCount=1}={}){
  if(!Number.isFinite(rate))return null;
  return {currency:"USD",unit:"image",imageCount:1,resolution:model.prices?resolution:"fixed",baseUsd:rate,includesExtras:false};
 }
+
+const SUPPORTED_REFERENCE_ID=/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
+export function planGeneration(input={}){
+ const model=describeModel(input.modelId);
+ if(!model)return {ok:false,error:"UNKNOWN_MODEL"};
+ const refs=input.referenceAssetIds;
+ if(!Array.isArray(refs)||refs.length<1||refs.length>model.maxImages||refs.some(v=>typeof v!=="string"||!SUPPORTED_REFERENCE_ID.test(v))||new Set(refs).size!==refs.length)
+  return {ok:false,error:"INVALID_REFERENCE_IDS"};
+ if(typeof input.prompt!=="string"||!input.prompt.trim()||input.prompt.length>2500)
+  return {ok:false,error:"INVALID_PROMPT"};
+ const estimate=model.kind==="video"?estimateVideoCost(input):estimateImageCost(input);
+ if(!estimate)return {ok:false,error:"INVALID_ESTIMATE_OPTIONS"};
+ const budget=input.maxBudgetUsd;
+ if(typeof budget!=="number"||!Number.isFinite(budget)||budget<=0||budget>0.5)
+  return {ok:false,error:"INVALID_BUDGET"};
+ if(estimate.baseUsd>budget)return {ok:false,error:"BUDGET_EXCEEDED",estimate};
+ return {ok:true,plan:{modelId:model.id,kind:model.kind,referenceAssetIds:[...refs],
+  referenceCount:refs.length,promptLength:input.prompt.trim().length,
+  estimate,maxBudgetUsd:budget,requiresReferenceOwnershipCheck:true,
+  referencesResolved:false,dispatchReady:false,paidDispatchEnabled:false,generationEnabled:false,
+  storageReady:false,persistenceReady:false,
+  note:"Dry-run only. Reference ownership and provider parameters must be verified before any dispatch."}};
+}
