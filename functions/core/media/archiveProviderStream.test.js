@@ -55,3 +55,16 @@ test("rejects oversized stream and prevents Firestore record",async()=>{
  await assert.rejects(archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([Buffer.alloc(1000)])}),/ARCHIVE_BYTE_LIMIT/);
  assert.equal(f.documents.size,0);
 });
+
+test("rejects invalid media signature before completing storage object",async()=>{
+ const f=fake();
+ await assert.rejects(archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([Buffer.alloc(png.length)])}),/ARCHIVE_SIGNATURE_MISMATCH/);
+ assert.equal(f.objects.size,0);
+ assert.equal(f.documents.size,0);
+});
+test("rejects truncated payload before finalizing object",async()=>{
+ const f=fake();
+ await assert.rejects(archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png.subarray(0,12)])}),/ARCHIVE_SIZE_MISMATCH/);
+ assert.equal(f.objects.size,0);
+ assert.equal(f.documents.size,0);
+});
