@@ -20,6 +20,8 @@ jobs:
         run: |
           node --check functions/core/media/archiveContract.js
           node --check functions/core/media/archiveProviderStream.js
+      - name: Install Sogni test dependencies
+        run: npm install --prefix functions/sogni-check --no-audit --no-fund
       - name: Run archive tests (offline)
         run: |
           node --test functions/core/media/*.test.js
