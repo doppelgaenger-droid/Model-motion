@@ -1,0 +1,23 @@
+name: Media Archive Tests
+on:
+  pull_request:
+    paths:
+      - 'functions/core/media/**'
+      - '.github/workflows/media-archive-tests.yml'
+  workflow_dispatch:
+jobs:
+  media-archive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate archive modules
+        run: |
+          node --check functions/core/media/archiveContract.js
+          node --check functions/core/media/archiveProviderStream.js
+      - name: Run archive tests (offline)
+        run: node --test functions/core/media/*.test.js
