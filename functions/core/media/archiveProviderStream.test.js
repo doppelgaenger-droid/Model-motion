@@ -25,10 +25,11 @@ function fake() {
       const chunks=[];
       return new Writable({
         write(chunk,_,cb){chunks.push(Buffer.from(chunk));cb()},
-        final(cb){objects.set(path,{name:path,size:String(Buffer.concat(chunks).length),contentType:options.metadata.contentType});cb()}
+        final(cb){const bytes=Buffer.concat(chunks);objects.set(path,{name:path,size:String(bytes.length),contentType:options.metadata.contentType,metadata:options.metadata.metadata,bytes});cb()}
       });
     },
-    async getMetadata(){return [objects.get(path)]}
+    async getMetadata(){if(!objects.has(path)){const e=Error("NOT_FOUND");e.code=404;throw e}return [objects.get(path)]},
+    createReadStream(){if(!objects.has(path))throw Error("NOT_FOUND");return Readable.from([objects.get(path).bytes])}
   }}};
   return {db,bucket,documents,objects};
 }
@@ -66,5 +67,24 @@ test("rejects truncated payload before finalizing object",async()=>{
  const f=fake();
  await assert.rejects(archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png.subarray(0,12)])}),/ARCHIVE_SIZE_MISMATCH/);
  assert.equal(f.objects.size,0);
+ assert.equal(f.documents.size,0);
+});
+
+test("recovers object with missing Firestore record",async()=>{
+ const f=fake();
+ await archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png])});
+ f.documents.clear();
+ const result=await archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png])});
+ assert.equal(result.recovered,true);
+ assert.equal(f.objects.size,1);
+ assert.equal(f.documents.size,1);
+});
+test("does not recover tampered stored bytes",async()=>{
+ const f=fake();
+ await archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png])});
+ f.documents.clear();
+ const object=[...f.objects.values()][0];
+ object.bytes=Buffer.alloc(png.length);
+ await assert.rejects(archiveProviderStream({...f,job,artifact:input,sourceStream:Readable.from([png])}),/ARCHIVE_SIGNATURE_MISMATCH/);
  assert.equal(f.documents.size,0);
 });
