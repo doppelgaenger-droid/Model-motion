@@ -34,7 +34,7 @@ export function AssetGallery({assets, owner, onDeleted, selections, onSelection}
   return <>
     {sortCreativeAssets(assets).map(asset=><div className="reference-preview mm-asset-card" key={asset.id}>
       <button type="button" onClick={()=>{setActive(asset);setZoom(1)}} aria-label={`Zoom ${asset.name}`} style={{display:"block",width:"100%",padding:0,border:0,background:"transparent",cursor:"zoom-in"}}>
-        <img src={asset.downloadUrl} alt={asset.name}/>
+        <img src={asset.downloadUrl} alt={asset.name} loading="lazy" decoding="async"/>
       </button>
       <small>{asset.type} · {edits[asset.id]?.displayName ?? asset.displayName ?? asset.name}</small>{(edits[asset.id]?.description ?? asset.description)&&<p className="mm-asset-description">{edits[asset.id]?.description ?? asset.description}</p>}
       {owner.kind==="character"&&<div className="mm-asset-selections">{selections?.dashboardAssetId===asset.id&&<small>Dashboard selected</small>}{selections?.defaultProductionAssetId===asset.id&&<small>Production default</small>}</div>}
@@ -56,7 +56,7 @@ export function AssetGallery({assets, owner, onDeleted, selections, onSelection}
         <button type="button" onClick={()=>setActive(null)}>Close ✕</button>
       </div>
       <div className="mm-lightbox-stage">
-        <img src={active.downloadUrl} alt={active.name} style={{width:`${zoom*100}%`,maxWidth:"none",height:"auto",minWidth:200}}/>
+        <img src={active.downloadUrl} alt={active.name} decoding="async" style={{width:`${zoom*100}%`,maxWidth:"none",height:"auto",minWidth:200}}/>
       </div>
       <small>{active.name} · Esc to close</small>
     </div>}
