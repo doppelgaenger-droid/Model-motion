@@ -6,6 +6,6 @@ export default defineConfig({
   base: "/Model-motion/",
   test: {
     // Media archive .test.js files use node:test and are run independently by Node.
-    exclude: [...configDefaults.exclude, "functions/core/media/**/*.test.js"],
+    exclude: [...configDefaults.exclude, "functions/core/media/**/*.test.js", "functions/sogni-check/**/*.test.js"],
   },
 });
