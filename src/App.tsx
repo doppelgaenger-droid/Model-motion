@@ -1,5 +1,6 @@
 import { GeneratorStudio } from "./components/GeneratorStudio";
 import { ProviderDiagnostics } from "./components/ProviderDiagnostics";
+import { ArchivedMediaLibrary } from "./components/ArchivedMediaLibrary";
 import { ModelsDashboard } from "./components/ModelsDashboard";
 import { usePrivateSceneCast } from "./scenes/privateCast";
 import { readPrivateSceneSnapshot, savePrivateSceneSnapshot, type PrivateSceneSnapshot } from "./scenes/privateSnapshot";
@@ -11,7 +12,7 @@ import { AssetGallery } from "./components/AssetGallery";
 import { listCreativeAssets, sortCreativeAssets, type AssetOwner, type UploadedCreativeAsset } from "./assets/upload";
 import { AuthGate } from "./components/AuthGate";
 
-type Selection = "models" | "settings" | "generator" | "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
+type Selection = "archive" | "models" | "settings" | "generator" | "audit" | "lily" | "mara" | "location" | "storyboard" | "shot-01" | "shot-02" | "shot-03" | "shot-04";
 const shotData = {
   "shot-01": { n:"01", title:"Approach", duration:"6s", action:"Mara walks to room 714 and stops directly in front of the closed door.", status:"Ready" },
   "shot-02": { n:"02", title:"Turn", duration:"4s", action:"A male voice calls “Mara?” from behind. Mara stays in place and turns toward the corridor.", status:"Draft" },
@@ -64,7 +65,7 @@ export function App(){
 
     <aside className="navigator">
       <div className="nav-title"><span>WORKSPACE</span><small>LIBRARY + PRODUCTION</small></div>
-      <div className="tree-section"><h3>CREATE</h3><NavRow active={selected==="models"} icon="✦" title="Models" meta="Character dashboard" onClick={()=>setSelected("models")}/><NavRow active={selected==="generator"} icon="▶" title="Generator Studio" meta="Creative workspace" onClick={()=>setSelected("generator")}/></div>
+      <div className="tree-section"><h3>CREATE</h3><NavRow active={selected==="models"} icon="✦" title="Models" meta="Character dashboard" onClick={()=>setSelected("models")}/><NavRow active={selected==="generator"} icon="▶" title="Generator Studio" meta="Creative workspace" onClick={()=>setSelected("generator")}/><NavRow active={selected==="archive"} icon="▣" title="Archived media" meta="Private image & video library" onClick={()=>setSelected("archive")}/></div>
       <div className="tree-section"><h3>CHARACTER LIBRARY <span>2</span></h3><NavRow active={selected==="mara"} icon="M" title="Mara" meta="Character 001 · Global" onClick={()=>setSelected("mara")}/><NavRow active={selected==="lily"} icon="L" title="Lily" meta="Character 002 · Global" onClick={()=>setSelected("lily")}/></div>
       <div className="tree-section"><h3>PRIVATE SCENE BACKUP</h3><p className="muted">Copy Room 714 shot definitions to your private workspace. No existing data is overwritten or deleted.</p><button type="button" disabled={snapshotBusy} onClick={()=>void migrateSceneSnapshot()}>{snapshotBusy?"Checking private copy…":"Save private scene copy"}</button>{snapshotNotice && <p role="status">{snapshotNotice}</p>}</div>
       <div className="tree-section"><h3>SCENE CAST</h3><p className="muted">Private scene assignments · saved to your account.</p>{!castReady && <p role="status" className="muted">Loading private cast…</p>}{castError && <p role="alert">{castError}</p>}{castSaving && <p role="status" className="muted">Saving…</p>}{castOptions.map(character=><label key={character.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",fontSize:12}}><input type="checkbox" disabled={!castReady || castSaving} checked={sceneCast.includes(character.id)} onChange={()=>void toggleCast(character.id)}/>{character.name}</label>)}</div>
@@ -81,6 +82,7 @@ export function App(){
       {selected==="settings" && <SettingsOverview/>}
       {selected==="generator" && <GeneratorStudio initialCharacterId={studioCharacter}/>}
       {selected==="audit" && <CharacterAssetAudit/>}
+      {selected==="archive" && <ArchivedMediaLibrary/>}
       {selected==="mara" && <CharacterStudio/>}
       {selected==="lily" && <LilyStudio/>}
       {selected==="location" && <LocationStudio/>}
@@ -89,7 +91,7 @@ export function App(){
     </main>
 
     <aside className="inspector">
-      {selected==="models" || selected==="settings"?<div className="inspector-head"><span>PRIVATE WORKSPACE</span><b>Authenticated</b></div>:selected==="generator"?<div className="inspector-head"><span>GENERATOR</span><b>API prototype</b></div>:selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
+      {selected==="models" || selected==="settings"?<div className="inspector-head"><span>PRIVATE WORKSPACE</span><b>Authenticated</b></div>:selected==="generator"?<div className="inspector-head"><span>GENERATOR</span><b>API prototype</b></div>:selected==="archive"?<div className="inspector-head"><span>MEDIA ARCHIVE</span><b>Private · Read-only</b></div>:selected==="audit"?<div className="inspector-head"><span>ASSET AUDIT</span><b>Read-only</b></div>:selected==="lily"?<LilyInspector/>:selected==="mara"?<CharacterInspector/>:selected==="location"?<LocationInspector/>:selected==="storyboard"?<StoryboardInspector/>:<ShotInspector shot={shot!}/>}
     </aside>
 
     {shot && <section className="takes">
