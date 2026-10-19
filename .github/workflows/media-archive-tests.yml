@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'functions/core/media/**'
+      - 'functions/sogni-check/**'
       - '.github/workflows/media-archive-tests.yml'
   workflow_dispatch:
 jobs:
@@ -20,4 +21,6 @@ jobs:
           node --check functions/core/media/archiveContract.js
           node --check functions/core/media/archiveProviderStream.js
       - name: Run archive tests (offline)
-        run: node --test functions/core/media/*.test.js
+        run: |
+          node --test functions/core/media/*.test.js
+          node --test functions/sogni-check/artifactShape.test.js
