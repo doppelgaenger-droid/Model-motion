@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { auth, db, firebaseConfigurationError, storage } from "../lib/firebase";
+import { createImageThumbnail } from "./thumbnail";
 
 export type AssetOwner =
   | { kind: "character"; id: string; projectId: string }
@@ -25,6 +26,8 @@ export interface UploadedCreativeAsset {
   uploadedBy: string;
   storagePath: string;
   downloadUrl: string;
+  thumbnailPath?: string;
+  thumbnailUrl?: string;
   mimeType: string;
   size: number;
 }
@@ -52,21 +55,43 @@ export async function uploadCreativeAsset(file: File, owner: AssetOwner, type: C
   const objectRef = ref(storage, storagePath);
   await uploadBytes(objectRef, file, { contentType: file.type });
 
+  // Optional derived preview. Failure must never prevent the original from being saved.
+  const previewPath = `${storagePath}.preview.webp`;
+  const previewRef = ref(storage, previewPath);
+  let thumbnailUrl: string | undefined;
+  let thumbnailPath: string | undefined;
+  try {
+    const preview = await createImageThumbnail(file);
+    if (preview) {
+      await uploadBytes(previewRef, preview, { contentType: "image/webp" });
+      thumbnailPath = previewPath;
+      thumbnailUrl = await getDownloadURL(previewRef);
+    }
+  } catch {
+    // If the preview upload succeeded but URL retrieval failed, remove its orphan.
+    await deleteObject(previewRef).catch(() => undefined);
+    thumbnailPath = undefined;
+    thumbnailUrl = undefined;
+  }
+
   let metadataWritten = false;
   try {
     const downloadUrl = await getDownloadURL(objectRef);
-    const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, mediaType:"image", sourceType:owner.kind==="character"&&["identity-reference","character-board","full-body-reference"].includes(type)?"core":"uploaded", owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
+    const metadata = { schemaVersion:owner.kind === "character" ? 3 : 2, characterId:owner.kind === "character" ? owner.id : null, name:file.name, type, mediaType:"image", sourceType:owner.kind==="character"&&["identity-reference","character-board","full-body-reference"].includes(type)?"core":"uploaded", owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, ...(thumbnailUrl && thumbnailPath ? {thumbnailUrl, thumbnailPath} : {}), mimeType:file.type, size:file.size, createdAt:serverTimestamp() };
     const document = await addDoc(collection(db, "creativeAssets"), metadata);
     metadataWritten = true;
     const persisted = await getDoc(document);
     if (!persisted.exists() || persisted.data().uploadedBy !== user.uid || persisted.data().storagePath !== storagePath) {
       throw new Error("Upload reached Storage but its Firestore metadata could not be verified. Check your connection and permissions.");
     }
-    return { id:document.id, schemaVersion:metadata.schemaVersion, characterId:metadata.characterId ?? undefined, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, mimeType:file.type, size:file.size };
+    return { id:document.id, schemaVersion:metadata.schemaVersion, characterId:metadata.characterId ?? undefined, name:file.name, type, owner, projectId, uploadedBy:user.uid, storagePath, downloadUrl, thumbnailUrl, thumbnailPath, mimeType:file.type, size:file.size };
   } catch (error) {
     // Keep the object when metadata was written but its readback failed.
     // Deleting it here would leave a broken Firestore record.
-    if (!metadataWritten) await deleteObject(objectRef).catch(() => undefined);
+    if (!metadataWritten) {
+      if (thumbnailPath) await deleteObject(previewRef).catch(() => undefined);
+      await deleteObject(objectRef).catch(() => undefined);
+    }
     throw error;
   }
 }
@@ -117,6 +142,13 @@ export async function deleteCreativeAsset(asset: UploadedCreativeAsset, owner: A
   if (!(owner.kind === "character" && asset.characterId === owner.id && asset.storagePath.startsWith(globalPrefix)) &&
       !asset.storagePath.startsWith(legacyPrefix)) throw new Error("Invalid asset storage path.");
   // Keep the Firestore record when Storage deletion fails, so the user can retry.
+  // Delete the derived preview first. If deletion fails, preserve metadata so it can be retried.
+  if (asset.thumbnailPath) {
+    if (asset.thumbnailPath !== `${asset.storagePath}.preview.webp`) throw new Error("Invalid preview storage path.");
+    await deleteObject(ref(storage, asset.thumbnailPath)).catch(error => {
+      if (error?.code !== "storage/object-not-found") throw error;
+    });
+  }
   await deleteObject(ref(storage, asset.storagePath));
   await deleteDoc(doc(db, "creativeAssets", asset.id));
 }
