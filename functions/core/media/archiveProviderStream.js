@@ -8,6 +8,43 @@ import { planMediaArchive, verifyStoredArtifact } from "./archiveContract.js";
  * No user-supplied URLs, arbitrary fetch, public download tokens or paid generation.
  * Firestore and bucket are injected to enable emulator/offline tests.
  */
+
+// Recovery path for a successfully uploaded object whose Firestore write failed.
+// Re-read the private object and verify its complete contents; never trust metadata alone.
+async function recoverExistingArchive({ db, file, plan, docRef }) {
+  let metadata;
+  try { [metadata] = await file.getMetadata(); }
+  catch (error) { if (error.code === 404) return null; throw error; }
+  verifyStoredArtifact(plan, metadata);
+  if (metadata.metadata?.jobId !== plan.jobId || metadata.metadata?.provider !== plan.provider) throw Error("ARCHIVE_METADATA_MISMATCH");
+  if (typeof file.createReadStream !== "function") throw Error("ARCHIVE_RECOVERY_STREAM_REQUIRED");
+  const digest = createHash("sha256");
+  let size = 0, prefix = Buffer.alloc(0);
+  for await (const chunk of file.createReadStream()) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > plan.byteLength) throw Error("ARCHIVE_BYTE_LIMIT");
+    if (prefix.length < 16) prefix = Buffer.concat([prefix, bytes.subarray(0, 16-prefix.length)]);
+    digest.update(bytes);
+  }
+  if (size !== plan.byteLength) throw Error("ARCHIVE_SIZE_MISMATCH");
+  const signature = plan.mimeType === "image/png" ? prefix.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+    : plan.mimeType === "image/jpeg" ? prefix[0]===255 && prefix[1]===216 && prefix[2]===255
+    : plan.mimeType === "image/webp" ? prefix.toString("ascii",0,4)==="RIFF" && prefix.toString("ascii",8,12)==="WEBP"
+    : plan.mimeType === "video/mp4" ? prefix.toString("ascii",4,8)==="ftyp"
+    : prefix.subarray(0,4).equals(Buffer.from([26,69,223,163]));
+  if (!signature) throw Error("ARCHIVE_SIGNATURE_MISMATCH");
+  const record = { ...verifyStoredArtifact(plan,metadata), sha256:digest.digest("hex"), createdAt:new Date() };
+  await db.runTransaction(async tx => {
+    const snap=await tx.get(docRef);
+    if (snap.exists) {
+      const prior=snap.data();
+      if (prior.ownerUid!==plan.ownerUid || prior.storagePath!==plan.storagePath || prior.sha256!==record.sha256) throw Error("ARCHIVE_ID_CONFLICT");
+    } else tx.create(docRef,record);
+  });
+  return { ...record, recovered:true };
+}
+
 export async function archiveProviderStream({ db, bucket, job, artifact, sourceStream }) {
   if (!db || !bucket || !sourceStream) throw new Error("ARCHIVE_DEPENDENCIES_MISSING");
   if (!job || job.status !== "completed" || !job.ownerUid || !job.provider || !job.id) {
@@ -28,6 +65,8 @@ export async function archiveProviderStream({ db, bucket, job, artifact, sourceS
     return { ...data, reused: true };
   }
   const file = bucket.file(plan.storagePath);
+  const recovered = await recoverExistingArchive({db,file,plan,docRef});
+  if (recovered) return recovered;
   let size = 0;
   const digest = createHash("sha256");
   let signature = Buffer.alloc(0);
