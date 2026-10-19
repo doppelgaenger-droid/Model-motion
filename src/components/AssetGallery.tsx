@@ -34,7 +34,7 @@ export function AssetGallery({assets, owner, onDeleted, selections, onSelection}
   return <>
     {sortCreativeAssets(assets).map(asset=><div className="reference-preview mm-asset-card" key={asset.id}>
       <button type="button" onClick={()=>{setActive(asset);setZoom(1)}} aria-label={`Zoom ${asset.name}`} style={{display:"block",width:"100%",padding:0,border:0,background:"transparent",cursor:"zoom-in"}}>
-        <img src={asset.downloadUrl} alt={asset.name} loading="lazy" decoding="async"/>
+        <img src={asset.thumbnailUrl || asset.downloadUrl} alt={asset.name} loading="lazy" decoding="async" onError={event=>{if(event.currentTarget.src!==asset.downloadUrl)event.currentTarget.src=asset.downloadUrl}}/>
       </button>
       <small>{asset.type} · {edits[asset.id]?.displayName ?? asset.displayName ?? asset.name}</small>{(edits[asset.id]?.description ?? asset.description)&&<p className="mm-asset-description">{edits[asset.id]?.description ?? asset.description}</p>}
       {owner.kind==="character"&&<div className="mm-asset-selections">{selections?.dashboardAssetId===asset.id&&<small>Dashboard selected</small>}{selections?.defaultProductionAssetId===asset.id&&<small>Production default</small>}</div>}
