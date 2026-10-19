@@ -4,7 +4,7 @@ const uid="owner-123";
 function mock(asset,exists=true){
  return {
   db:{collection:()=>({doc:()=>({get:async()=>({exists:!!asset,data:()=>asset})})})},
-  storage:{bucket:()=>({file:()=>({exists:async()=>[exists]})})}
+  storage:{bucket:(name)=>{if(name!=="model-motion.firebasestorage.app")throw Error("wrong bucket");return {file:()=>({exists:async()=>[exists]})}}}
  };
 }
 test("owned existing reference passes without exposing paths",async()=>{
