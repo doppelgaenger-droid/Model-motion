@@ -39,6 +39,12 @@ export async function archiveProviderStream({ db, bucket, job, artifact, sourceS
       if (signature.length < 16) signature = Buffer.concat([signature, bytes.subarray(0, 16 - signature.length)]);
       digest.update(bytes);
       callback(null, bytes);
+    },
+    flush(callback) {
+      // Reject malformed or truncated media before the Storage writer can finalize.
+      if (size !== plan.byteLength) return callback(new Error("ARCHIVE_SIZE_MISMATCH"));
+      if (!matchesSignature()) return callback(new Error("ARCHIVE_SIGNATURE_MISMATCH"));
+      callback();
     }
   });
   const matchesSignature = () => {
@@ -58,8 +64,6 @@ export async function archiveProviderStream({ db, bucket, job, artifact, sourceS
   });
   try {
     await pipeline(sourceStream, meter, writer);
-    if (size !== plan.byteLength) throw new Error("ARCHIVE_SIZE_MISMATCH");
-    if (!matchesSignature()) throw new Error("ARCHIVE_SIGNATURE_MISMATCH");
     const [metadata] = await file.getMetadata();
     const record = {
       ...verifyStoredArtifact(plan, metadata),
