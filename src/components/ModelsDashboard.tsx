@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { listCreativeAssets, type UploadedCreativeAsset } from "../assets/upload";
 import { ExtraReferences } from "./ExtraReferences";
 import { LookComposer } from "./LookComposer";
-import { createCustomModel, listCustomModels, type CustomModel } from "../models/registry";
+import { createCustomModel, listCustomModels, renameCustomModel, deleteEmptyCustomModel, type CustomModel } from "../models/registry";
 import { AssetUpload } from "./AssetUpload";
 import { AssetGallery } from "./AssetGallery";
 
@@ -15,7 +15,7 @@ const builtIns = [
 
 type Model = {key:string;name:string;subtitle:string;id:string;projectId:string;description?:string};
 type DashboardView = "large" | "medium" | "list";
-function ModelCard({model,onOpen,onCreate,view}:{model:Model;onOpen:()=>void;onCreate:()=>void;view:DashboardView}) {
+function ModelCard({model,onOpen,onCreate,view,onManage}:{model:Model;onOpen:()=>void;onCreate:()=>void;view:DashboardView;onManage?:()=>void}) {
   const [assets,setAssets] = useState<UploadedCreativeAsset[]>([]);
   const [selected,setSelected]=useState<string|null>(null);
   useEffect(()=>{
@@ -39,7 +39,7 @@ function ModelCard({model,onOpen,onCreate,view}:{model:Model;onOpen:()=>void;onC
       <span className="model-cover-caption">{assets.length ? assets.length+" private assets" : "Add identity reference"}</span>
     </button>
     <div className="model-card-footer"><div className="mm-model-info"><h2>{model.name}</h2><p>{model.subtitle}</p>{model.description&&<p className="mm-model-description">{model.description}</p>}<div className="mm-model-facts"><span>{canon.length} core</span><span>{additional.length} extra</span><span>{generated.length} looks</span></div>{previews.length>0&&<div className="mm-model-previews" aria-label={"Content previews for "+model.name}>{previews.map(image=><img key={image.id} src={image.downloadUrl} title={image.displayName||image.name} alt={image.displayName||image.name} loading="lazy"/>)}</div>}</div>
-      <div className="model-card-actions"><button onClick={onOpen} type="button">Profile</button><button className="model-create" onClick={onCreate} type="button">Create ↗</button></div>
+      <div className="model-card-actions"><button onClick={onOpen} type="button">Profile</button><button className="model-create" onClick={onCreate} type="button">Create ↗</button>{onManage&&<button type="button" onClick={onManage} aria-label={"Manage "+model.name} title="Rename or delete">⋯</button>}</div>
     </div>
   </article>;
 }
@@ -59,6 +59,10 @@ export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}
  const [custom,setCustom]=useState<CustomModel[]>([]);
  const [active,setActive]=useState<Model|null>(null);
  const [adding,setAdding]=useState(false);
+ const [managing,setManaging]=useState<Model|null>(null);
+ const [action,setAction]=useState<"rename"|"delete">("rename");
+ const [editName,setEditName]=useState("");
+ const [confirmName,setConfirmName]=useState("");
  const [name,setName]=useState("");
  const [description,setDescription]=useState("");
  const [busy,setBusy]=useState(false);
@@ -71,14 +75,35 @@ export function ModelsDashboard({onCreate}:{onCreate:(characterId:string)=>void}
   const created=await createCustomModel(name,description);setCustom(current=>[...current,created]);setAdding(false);setName("");setDescription("");
   setActive({key:created.id,id:"character-"+created.id,name:created.name,subtitle:"Private character",projectId:created.projectId});
  }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}}
+ async function manage(e:React.FormEvent){e.preventDefault();if(!managing)return;setBusy(true);setError("");
+  try{
+   if(action==="rename"){
+    await renameCustomModel(managing.key,editName);
+    const clean=editName.trim().replace(/\s+/g," ");
+    setCustom(items=>items.map(m=>m.id===managing.key?{...m,name:clean}:m));
+   }else{
+    await deleteEmptyCustomModel(managing.key,confirmName);
+    setCustom(items=>items.filter(m=>m.id!==managing.key));
+   }
+   setManaging(null);setConfirmName("");
+  }catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
+ }
  if(active)return <CustomProfile model={active} onBack={()=>setActive(null)} onCreate={onCreate}/>;
  return <div className="models-dashboard">
   <div className="dashboard-eyebrow">YOUR PRIVATE CREATIVE WORKSPACE <span> / CHARACTER LIBRARY</span></div>
   <div className="dashboard-heading"><div><h1>Cast & Characters<span className="dashboard-spark">✦</span></h1><p>Choose a character or create a new one.</p></div><button className="new-model-button" onClick={()=>setAdding(true)}>＋ New Model</button></div>
   {error&&!adding&&<p role="alert">{error}</p>}
   <nav className="mm-view-toolbar" aria-label="Character display mode"><span>{models.length} characters</span><div role="group" aria-label="View options">{([["large","▣ Large"],["medium","▦ Medium"],["list","☷ List"]] as const).map(([id,label])=><button type="button" key={id} aria-pressed={view===id} className={view===id?"selected":""} onClick={()=>chooseView(id)}>{label}</button>)}</div></nav>
-  <div className={"model-grid mm-model-grid-"+view}>{models.map(model=><ModelCard key={model.key} model={model} view={view} onOpen={()=>setActive(model)} onCreate={()=>onCreate(model.id)}/>)}</div>
+  <div className={"model-grid mm-model-grid-"+view}>{models.map(model=><ModelCard key={model.key} model={model} view={view} onOpen={()=>setActive(model)} onCreate={()=>onCreate(model.id)} onManage={model.subtitle==="Private character"?()=>{setManaging(model);setAction("rename");setEditName(model.name);setConfirmName("");setError("")}:undefined}/>)}</div>
   <section className="dashboard-footnote"><span>PRIVATE BY DESIGN</span><p>{models.length} characters in your private workspace.</p></section>
+  {managing&&<div className="new-model-overlay"><form className="new-model-dialog" role="dialog" aria-modal="true" aria-labelledby="manage-model-title" onSubmit={e=>void manage(e)}>
+    <h2 id="manage-model-title">Manage {managing.name}</h2>
+    <div className="new-model-dialog-actions"><button type="button" aria-pressed={action==="rename"} onClick={()=>{setAction("rename");setError("")}}>Rename</button><button type="button" aria-pressed={action==="delete"} onClick={()=>{setAction("delete");setError("")}}>Delete</button></div>
+    {action==="rename"?<><label htmlFor="rename-model-name">New name</label><input id="rename-model-name" required minLength={2} maxLength={80} value={editName} onChange={e=>setEditName(e.target.value)}/><p>Character ID and linked references remain unchanged.</p></>:
+      <><p>Delete <strong>{managing.name}</strong>? This is permanent. Characters with linked assets or productions cannot be deleted until those dependencies are removed.</p><label htmlFor="delete-model-confirm">Type <strong>{managing.name}</strong> to confirm</label><input id="delete-model-confirm" autoComplete="off" value={confirmName} onChange={e=>setConfirmName(e.target.value)}/></>}
+    {error&&<p role="alert">{error}</p>}
+    <div className="new-model-dialog-actions"><button type="button" disabled={busy} onClick={()=>{setManaging(null);setError("")}}>Cancel</button><button type="submit" className="new-model-button" disabled={busy||(action==="delete"&&confirmName!==managing.name)||(action==="rename"&&editName.trim().length<2)}>{busy?"Saving…":action==="rename"?"Save name":"Delete character"}</button></div>
+   </form></div>}
   {adding&&<div className="new-model-overlay"><form className="new-model-dialog" role="dialog" aria-modal="true" aria-labelledby="new-model-title" onSubmit={e=>void add(e)}>
    <h2 id="new-model-title">New model</h2><label htmlFor="new-model-name">Name</label><input id="new-model-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/>
    <label htmlFor="new-model-description">Description</label><textarea id="new-model-description" maxLength={1000} rows={3} value={description} onChange={e=>setDescription(e.target.value)}/>
