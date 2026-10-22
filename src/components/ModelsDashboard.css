@@ -23,3 +23,14 @@
 .models-dashboard .mm-model-list .mm-model-previews img{width:65px;height:75px}
 .models-dashboard .mm-model-large .mm-model-previews img{width:66px;height:78px}
 @media(max-width:650px){.mm-view-toolbar{align-items:stretch;flex-direction:column}.mm-view-toolbar>div{width:100%}.mm-view-toolbar button{flex:1}.models-dashboard .mm-model-list{grid-template-columns:105px minmax(0,1fr);min-height:210px}.models-dashboard .mm-model-list .model-cover{min-height:210px}.models-dashboard .mm-model-list .model-card-footer{padding:12px}.models-dashboard .mm-model-list .model-card-actions{flex-wrap:wrap}.models-dashboard .mm-model-list .mm-model-previews img{width:39px;height:49px}}
+
+/* Destructive actions live only at the bottom of a character profile. */
+.mm-danger-zone{margin-top:48px;padding:22px;border:1px solid #9f4444;border-radius:12px;background:transparent}
+.mm-danger-zone h2{margin:0 0 18px;color:#f19a9a;font-size:17px}
+.mm-danger-content{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.mm-danger-content strong{font-size:14px}
+.mm-danger-content p{font-size:12px;color:#b9b3ba;line-height:1.5;margin:7px 0 0}
+.mm-danger-button{border:1px solid #c35b5b;border-radius:8px;background:transparent;color:#ffabab;padding:10px 15px;cursor:pointer;white-space:nowrap}
+.mm-danger-button:hover:not(:disabled){background:#842c2c;color:white}
+.mm-danger-button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:650px){.mm-danger-content{align-items:stretch;flex-direction:column}.mm-danger-button{width:100%}}
